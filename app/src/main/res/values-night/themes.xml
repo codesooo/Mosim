@@ -1,0 +1,3 @@
+<resources>
+    <style name="Theme.Mosim" parent="android:Theme.Material.NoActionBar" />
+</resources>

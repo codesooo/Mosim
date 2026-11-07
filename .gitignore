@@ -1,0 +1,25 @@
+# Gradle
+.gradle/
+build/
+app/build/
+!gradle/wrapper/gradle-wrapper.jar
+
+# 개인 환경
+local.properties
+*.iml
+.kotlin/
+
+# IDE
+.idea/
+.vscode/
+.DS_Store
+captures/
+.externalNativeBuild
+.cxx/
+
+# 서명키와 비밀값은 커밋하지 않는다
+*.jks
+*.keystore
+keystore.properties
+secrets.properties
+*.p12

@@ -1,0 +1,17 @@
+# 줄바꿈을 저장소 기준 LF로 통일한다.
+* text=auto eol=lf
+
+# gradlew는 CRLF가 되면 macOS/Linux에서 실행되지 않는다.
+gradlew text eol=lf
+*.sh text eol=lf
+
+# Windows 배치 파일은 CRLF여야 한다.
+gradlew.bat text eol=crlf
+*.bat text eol=crlf
+
+# 바이너리
+*.jar binary
+*.webp binary
+*.png binary
+*.jks binary
+*.keystore binary
