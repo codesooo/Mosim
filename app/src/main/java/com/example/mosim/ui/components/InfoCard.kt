@@ -18,9 +18,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.painter.Painter
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import com.example.mosim.R
 import com.example.mosim.ui.theme.MosimColor
 import com.example.mosim.ui.theme.MosimDimens
 import com.example.mosim.ui.theme.MosimShape
@@ -51,7 +53,7 @@ fun InfoCard(
 
 /**
  * 카드 안 한 줄: 아이콘·라벨은 왼쪽, (칩)·값은 오른쪽 (B-1 "Row/픽업까지").
- * 아이콘은 5단계에서 Vector XML이 들어오면 painterResource로 넘긴다.
+ * 아이콘은 res/drawable의 ic_* (Lucide)를 painterResource(R.drawable.ic_battery)처럼 넘긴다.
  */
 @Composable
 fun InfoRow(
@@ -146,10 +148,22 @@ private fun InfoCardPreview() {
         ) {
             // Mock 값: 피그마 B-1 예시를 그대로 옮겼다.
             InfoCard(title = "차량 상태", modifier = Modifier.width(484.dp).height(648.dp)) {
-                InfoRow(label = "배터리", value = "12%", chipText = "부족", chipTone = ChipTone.Caution)
-                InfoRow(label = "주행 가능", value = "30km")
-                InfoRow(label = "실내 온도", value = "16℃")
-                InfoRow(label = "동승석", value = "", chipText = "짐 있음 추정", chipTone = ChipTone.Caution)
+                InfoRow(
+                    label = "배터리",
+                    value = "12%",
+                    icon = painterResource(R.drawable.ic_battery),
+                    chipText = "부족",
+                    chipTone = ChipTone.Caution,
+                )
+                InfoRow(label = "주행 가능", value = "30km", icon = painterResource(R.drawable.ic_map_pin))
+                InfoRow(label = "실내 온도", value = "16℃", icon = painterResource(R.drawable.ic_thermometer))
+                InfoRow(
+                    label = "동승석",
+                    value = "",
+                    icon = painterResource(R.drawable.ic_users),
+                    chipText = "짐 있음 추정",
+                    chipTone = ChipTone.Caution,
+                )
             }
             Column(
                 modifier = Modifier.width(520.dp),

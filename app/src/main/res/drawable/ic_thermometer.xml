@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Lucide "thermometer" (ISC License, https://lucide.dev). 피그마 모심 화면 v2 B-1 아이콘. -->
+<!-- 28dp 박스에 선 굵기 2dp가 되도록 viewport 24 기준 strokeWidth를 1.714로 맞췄다. 색은 Icon tint로 바꾼다. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="28dp"
+    android:height="28dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <path
+        android:pathData="M14 4v10.54a4 4 0 1 1-4 0V4a2 2 0 0 1 4 0Z"
+        android:strokeWidth="1.714"
+        android:strokeColor="#FF131417"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round" />
+</vector>
