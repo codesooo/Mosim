@@ -12,7 +12,9 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -21,6 +23,9 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import com.example.mosim.platform.pleos.PickupProgress
+import com.example.mosim.platform.pleos.PickupProgressSource
+import com.example.mosim.platform.pleos.PickupSourceProvider
 import com.example.mosim.ui.components.ChipSize
 import com.example.mosim.ui.components.ChipTone
 import com.example.mosim.ui.components.InfoCard
@@ -34,11 +39,13 @@ import com.example.mosim.ui.theme.MosimTypography
 import com.example.mosim.ui.theme.PleosColor
 import com.example.mosim.ui.theme.PleosTypography
 import com.example.mosim.ui.theme.strong
-import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.catch
+import java.util.Locale
 
 /*
  * C-1 픽업지로 이동 중 (주행 중 화면).
- * 운전 중이라 버튼을 두지 않고 글자를 크게 쓴다. 다음 화면(C-2)으로는 픽업지 정차 감지로 넘어간다.
+ * 운전 중이라 버튼을 두지 않고 글자를 크게 쓴다.
+ * 남은 거리는 PickupProgressSource에서 받고, 도착 신호가 오면 C-2로 넘어간다.
  */
 
 data class PickupEnRouteUiState(
@@ -46,7 +53,7 @@ data class PickupEnRouteUiState(
     val pickupPlace: String,
     val eta: String,
     val appointmentText: String,
-    val remainingDistanceText: String,
+    val remainingDistanceMeters: Int?,
     val chargeText: String,
     val arrivalBatteryText: String,
     val prepSteps: List<PrepStep>,
@@ -60,13 +67,14 @@ data class PrepStep(
     val chipTone: ChipTone,
 )
 
-// Mock: 피그마 C-1 예시 값
+// Mock: 피그마 C-1 예시 값. 남은 거리는 화면에서 PickupProgressSource 값으로 바꾼다.
+// [확인 필요] 도착 예정 시각과 약속 여유도 NaviHelper TripInfo.eta에서 받아야 한다. eta 타입을 reference에서 확인한 뒤 옮긴다.
 private val MockPickupEnRouteState = PickupEnRouteUiState(
     passengerName = "엄마",
     pickupPlace = "강남역 4번 출구",
     eta = "08:27",
     appointmentText = "약속 08:30 · 3분 여유",
-    remainingDistanceText = "남은 거리 3.1km",
+    remainingDistanceMeters = 3_100,
     chargeText = "충전 완료 · 잔량 45%",
     arrivalBatteryText = "목적지 도착 예상 잔량 31%",
     prepSteps = listOf(
@@ -77,9 +85,6 @@ private val MockPickupEnRouteState = PickupEnRouteUiState(
     shareLabel = "엄마에게 픽업 위치 공유",
     shareStatus = "공유됨",
 )
-
-// Mock: 실제로는 차량 위치·정차 신호로 픽업지 도착을 판단한다. 지금은 시연용으로 일정 시간 뒤 넘긴다.
-private const val MOCK_ARRIVAL_DELAY_MS = 5_000L
 
 // 피그마 C-1 배치 값 (이 화면에서만 쓴다)
 private const val HERO_COLUMN_WEIGHT = 960f
@@ -93,14 +98,31 @@ private val ShareCardPaddingVertical = 28.dp
 fun PickupEnRouteScreen(
     onBack: () -> Unit,
     onArrived: () -> Unit,
+    source: PickupProgressSource = PickupSourceProvider.pickupProgress,
 ) {
+    // 실패하면 마지막 거리를 그대로 둔다. 도착 신호가 안 오므로 C-1에 머물고 Back으로 나갈 수 있다.
+    // [확인 필요] 내비 연결 실패를 화면에 어떻게 보여 줄지 디자인이 없다.
+    val progressFlow = remember(source) { source.progress().catch { } }
+    val progress by progressFlow.collectAsState(initial = PickupProgress())
+
     val currentOnArrived by rememberUpdatedState(onArrived)
-    LaunchedEffect(Unit) {
-        delay(MOCK_ARRIVAL_DELAY_MS)
-        currentOnArrived()
+    LaunchedEffect(progress.arrived) {
+        if (progress.arrived) currentOnArrived()
     }
-    PickupEnRouteContent(state = MockPickupEnRouteState, onBack = onBack)
+
+    PickupEnRouteContent(
+        state = MockPickupEnRouteState.copy(remainingDistanceMeters = progress.remainingDistanceMeters),
+        onBack = onBack,
+    )
 }
+
+/** 3100 → "남은 거리 3.1km". 값이 아직 없으면 확인 중으로 둔다. */
+internal fun remainingDistanceText(meters: Int?): String =
+    if (meters == null) {
+        "남은 거리 확인 중" // [확인 필요] 값이 없을 때 문구는 피그마에 없다.
+    } else {
+        "남은 거리 ${String.format(Locale.ROOT, "%.1f", meters / 1000.0)}km"
+    }
 
 @Composable
 fun PickupEnRouteContent(
@@ -162,7 +184,7 @@ private fun PickupEtaCard(
         ) {
             StatusChip(text = state.appointmentText, tone = ChipTone.Normal, size = ChipSize.Small)
             Text(
-                text = state.remainingDistanceText,
+                text = remainingDistanceText(state.remainingDistanceMeters),
                 style = MosimTypography.HeroSubSmall,
                 color = PleosColor.TextDarkTertiary,
                 maxLines = 1,

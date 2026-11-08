@@ -34,8 +34,8 @@ fun MosimNavHost() {
             PickupGuideScreen(onBack = { navController.popBackStack() })
         }
 
-        // C-1 → C-2 → D-1. 정차·탑승 감지로 넘어가는 화면이라 앞 화면을 스택에서 뺀다.
-        // 그래야 Back으로 돌아갔을 때 Mock 자동 전환이 다시 돌지 않는다.
+        // C-1 → C-2 → D-1. 도착 신호, 도어 열림 신호로 넘어가는 화면이라 앞 화면을 스택에서 뺀다.
+        // 이미 지나간 단계로 Back해서 돌아가면 신호를 처음부터 다시 받게 되기 때문이다.
         composable(MosimRoute.PICKUP_EN_ROUTE) {
             PickupEnRouteScreen(
                 onBack = { navController.popBackStack() },
