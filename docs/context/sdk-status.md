@@ -1,0 +1,155 @@
+# SDK·API 현황
+
+> 출처: Pleos Playground 개발자 문서(수집 2026-11-07, SDK 릴리즈 2026-10-19 기준), 설명회 내용, 모심 서비스 기획.
+> 메서드 시그니처는 이 문서에 없다. 시그니처가 필요하면 `docs/reference/pleos/`를 본다.
+> 에뮬레이터에서 직접 확인한 사람은 표의 "에뮬레이터 검증" 칸을 PR로 갱신한다.
+
+## 1. 상태 정의와 코딩 규칙
+
+| 상태 | 뜻 | 코딩 규칙 |
+|---|---|---|
+| ✅ 사용 가능 | 문서·라이브러리 공개, 포털에서 신청 없이 사용 | `docs/reference/pleos/`에서 시그니처를 확인한 뒤 `platform/pleos/`에 구현한다 |
+| 🔜 Coming Soon | 포털 SDK 신청 화면에 "준비 중(Comming Soon)" 배지. 문서·라이브러리는 공개돼 있고, 설명회에서는 개발 단계에 매니페스트 선언만으로 에뮬레이터 테스트가 된다고 안내됨 | **인터페이스 + Mock까지만** 만든다. 에뮬레이터 검증 칸이 "됨"으로 바뀐 뒤에 실제 호출 코드를 쓴다 |
+| ⛔ 종료 | 제공 종료 | 쓰지 않는다 |
+| 🅰️ AAOS 표준 | Pleos SDK가 아닌 Android Automotive 표준 API | Pleos SDK에서 찾지 않는다. 코드 위치는 `docs/architecture.md`에서 정한다 `[확인 필요]` |
+| 🌐 외부 API | Pleos 밖의 서비스. 공모전에서 사용 허용됨 | 인터페이스 + Mock. 서비스가 정해지면 구현한다. 키는 `local.properties` |
+| ❓ 미확인 | 정보 부족 | 쓰지 않는다. 필요하면 팀에 알린다 |
+
+## 2. 전체 목록
+
+공통 Maven 저장소: `https://nexus-playground.pleos.ai/repository/maven-releases/`
+좌표 형식: `ai.pleos.playground:<SDK>:<버전>`. 권한은 모두 `pleos.car.permission.` 접두사.
+
+| 이름 | 상태 | 버전 | 의존성 | 권한 | 모심에서 쓰는 곳 | 에뮬레이터 검증 |
+|---|---|---|---|---|---|---|
+| Vehicle SDK – 조회(State) | ✅ | 2.3.2 | `Vehicle:2.3.2` | `CAR_*` (도메인별) | 착석·벨트·도어 감지, 배터리·연료, 실내 온도 조회 | 안 됨 |
+| Vehicle SDK – 제어(Control) | 🔜 | 2.3.2 (같은 라이브러리) | `Vehicle:2.3.2` | `CONTROL_CAR_*` | 공조 온도, 좌석 위치·등받이, 시트 열선·통풍 적용 | 안 됨 |
+| NaviHelper | ✅ | 3.0.5 | `NaviHelper:3.0.5` | `NAVI_ROUTE`, `NAVI_ROUTE_SEARCH`, `NAVI_CUSTOM_MAP` | 경로·ETA, 주유소·충전소 경유지, 도착 감지, 도착 예상 SOC | 안 됨 |
+| FusedLocation | 🔜 | 1.1.3 | `FusedLocation:1.1.3` | `FUSED_LOCATION` (**dangerous**) | 현재 위치, 픽업지 접근 감지(지오펜스) | 안 됨 |
+| TextToSpeech | 🔜 | 3.3.1 | `TextToSpeech:3.3.1` | `TTS_SERVICE` | 음성 안내 | 안 됨 |
+| SpeechToText | 🔜 | 3.3.1 | `SpeechToText:3.3.1` | `STT_SERVICE` | 동승자 음성 요청 | 안 됨 |
+| LLM SDK | ⛔ | — | — | — | 쓰지 않음 (2026-10-19 종료) | — |
+| Gleo Interface | ❓ | — | — | — | 포털이 AI 음성 연동용으로 안내. 내용 미확인 | — |
+| AAOS `CarPropertyManager` | 🅰️ | — | Android Car API | AAOS 권한 `[확인 필요]` | 차속, 기어(정차 판단), 외기 온도 | 안 됨 |
+| AAOS `CarUxRestrictions` | 🅰️ | — | Android Car API | — | 주행/정차에 따른 화면 제한 | 안 됨 |
+| 장소 검색 API | 🌐 미선정 | — | — | — | "근처 카페" 같은 요청 | — |
+| 주차 정보 API | 🌐 미선정 | — | — | — | 목적지 주차 가능 여부 | — |
+| 날씨 API | 🌐 미선정 | — | — | — | 출발 전 날씨 점검, 외기 보정 | — |
+| 에이전트용 LLM API | 🌐 미정 | — | — | — | Agentic AI 오케스트레이션 검토 중(`project-status.md` 참고) | — |
+| 음악·음량 제어 | ❓ | — | — | — | Vehicle SDK에 미디어 도메인 없음 | — |
+
+## 3. SDK별 핵심 규칙
+
+### 3.1 Vehicle SDK (2.3.2)
+
+**사용 흐름**: `Vehicle(context)` 생성 → `initialize()` → `getSeat()`, `getHVAC()` 같은 `getXxx()`로 도메인 객체를 얻음 → API 호출 → `release()`
+
+- 모든 결과는 **비동기**로 온다(`onComplete` / `onFailed`). 값을 바로 반환한다고 가정하지 않는다.
+- 비동기 콜백이 끝나기 전에 `release()`를 부르지 않는다. 보통 `onDestroy`에서 부른다.
+- API 종류는 네 가지다: Capability(`checkXxxCapabilities`, 지원 여부와 값 범위), Get(`getCurrentXxx`), Set(`setXxx`, `moveXxx`), Callback(`registerXxx`/`unregisterXxx`).
+- 쓰기 전에 Capability로 지원 여부를 확인하고, 미지원이면 UI를 비활성화한다.
+- Set이 성공했다고 실제 값이 바뀐 것은 아니다. 다시 조회하거나 Callback으로 확인한다.
+- 리스너는 등록할 때 쓴 **같은 객체, 같은 Area**로 해제한다.
+- 실패는 `VehicleException.errorCode`로 구분한다. 특히 `ERROR_SECURITY_PERMISSION`(권한), `ERROR_NOT_SUPPORTED_PROPERTY`/`ERROR_NOT_SUPPORTED_AREA`(미지원), `ERROR_DRIVING_RESTRICTED`(주행 중 제한)는 꼭 처리한다.
+
+**모심에서 쓸 도메인과 메서드 이름** (시그니처는 reference에서 확인)
+
+| 기능 | 도메인 | 메서드 | 권한 |
+|---|---|---|---|
+| 착석 감지 | Seat | `getCurrentSeatOccupancy`, `registerSeatOccupancy` | `CAR_SEATS` |
+| 벨트 감지 | Seat | `getCurrentSeatBeltBuckledState`, `registerSeatBeltBuckledState` | `CAR_SEATS` |
+| 도어 감지 | Door | `getCurrentDoorPosition`, `registerDoorPosition` | `CAR_DOORS` |
+| 실내 온도 조회 | HVAC | `getHvacTemperature`, `getHvacTemperatureCurrent`, `registerHvacTemperature` | `CAR_CLIMATE` |
+| 실내 온도 설정 🔜 | HVAC | `setHvacTemperature` | `CONTROL_CAR_CLIMATE` |
+| 좌석 위치·등받이 🔜 | Seat | `moveSeatForeAft`, `moveSeatBackrestAngle` | `CONTROL_CAR_SEATS` |
+| 시트 열선·통풍 🔜 | Seat | `setHvacSeatTemperature`, `setHvacSeatVentilation` (조회는 `getHvacSeatTemperature`, `getHvacSeatVentilationState`) | `CONTROL_CAR_SEATS` / `CAR_SEATS` |
+| EV 배터리 | EvBattery | `getEvBatteryStateOfCharge`, `registerEvBatteryStateOfCharge` | `CAR_ENERGY` |
+| 연료량 | Fuel | `getFuelPercent`, `registerFuelPercent` | `CAR_ENERGY` |
+| 주행가능거리 | `[확인 필요]` | 조회용 메서드가 색인에 없다. `RangeRemainingListener`는 문서에서 숨겨졌고 `setRangeRemainingDistance`만 보인다 | |
+
+Area 예: 운전석 `SeatValue.ROW_1_LEFT`, 동승석 `SeatValue.ROW_1_RIGHT`. `[확인 필요]` 동승석이 RIGHT인지는 에뮬레이터에서 확인한다.
+
+**함정 (2.3.2 변경 사항)**
+
+- `VehicleSpeedListener`는 **삭제됐다.** 차속은 Vehicle SDK로 받을 수 없다 → AAOS `CarPropertyManager`.
+- 기어 조회 메서드도 Vehicle SDK에 없다 → AAOS.
+- 연료량은 Vehicle `Fuel.getFuelPercent`가 2.3.2에 새로 생겼다. 기획 가이드는 연료 레벨을 AAOS로 읽으라고 한다. 어느 쪽을 쓸지 `[확인 필요]`.
+- `FanDirectionType` 값과 순서가 바뀌었다. ordinal을 저장하지 않는다.
+- Area 클래스들(`SeatArea`, `DoorArea` 등)은 이제 내용으로 `equals`를 비교한다.
+- 매니페스트에는 실제로 쓰는 API의 **최소 권한만** 선언한다. Sample App의 권한 목록을 통째로 복사하지 않는다.
+
+### 3.2 NaviHelper (3.0.5)
+
+**사용 흐름**: `NaviHelper(applicationContext)` → `initialize(onConnected, onFailed)` (권장 형태) → `addListener(NaviHelperEventListener)` → 요청·조회 → `removeListener()` → `release()`
+
+- **조회 API(`get*Info`)는 값을 반환하지 않는다.** 결과는 대응하는 리스너 콜백으로 온다. 예: `getDestinationInfo()` → `onDestinationInfo()`.
+- `requestRoute()`가 성공해도 경로 탐색이 끝난 것이 아니다. `onRoutingCompleted()`나 `onError()`로 확인한다.
+- 3.0.5부터 데이터 모델 생성자의 좌표 순서는 **(latitude, longitude)**다.
+- 경유지는 **최대 2개**(`WaypointIndex.FIRST`, `SECOND`).
+- 경로 옵션 변경(`changeRouteOption`)과 재탐색(`requestReRoute`)은 활성 경로가 있을 때만 된다.
+- 실제로 오는 이벤트는 Navigation 앱의 구현과 상태에 따라 다를 수 있다. 콜백이 안 와도 앱이 멈추지 않게 만든다.
+
+**모심에서 쓸 것**
+
+| 기능 | API / 콜백 | 권한 |
+|---|---|---|
+| 목적지 설정 | `requestRoute(RouteInfo)` | `NAVI_ROUTE_SEARCH` |
+| 경유지 포함 경로(주유소·충전소) | `requestRouteWithWaypoints`, `addWaypoint` | `NAVI_ROUTE_SEARCH` |
+| 편안한 경로 | `RouteOption.COMFORTABLE` | `NAVI_ROUTE_SEARCH` |
+| 예상 거리·ETA·도착 예상 SOC | `requestTrip` → `onTripInfo` (`TripInfo.distance`, `eta`, `estimatedSocAtDest`) | `NAVI_ROUTE` |
+| 남은 거리·시간 | `getDestinationInfo` → `DestinationInfo.remainDistance`, `remainTime` | `NAVI_ROUTE` |
+| 도착 감지 | `onDestinationArrived` | |
+| 근처 충전소 화면 | `requestNavigationScreen` (`nearbyChargingStations`) | `NAVI_CUSTOM_MAP` |
+
+### 3.3 FusedLocation (1.1.3) 🔜
+
+- 먼저 `isSupported()`로 확인하고, 미지원이면 위치 기능을 끈다.
+- 흐름: 생성 → `initialize()` → `getLastKnownLocation()` 또는 `registerFusedLocationCallback()` → `unregisterFusedLocationCallback()` → `release()`. unregister와 release는 서로 대체할 수 없다.
+- `onChanged(LocationData?)`의 값은 `null`일 수 있다. **`null`을 유효한 위치로 쓰지 않는다.**
+- `onError(Exception)`은 반드시 구현한다.
+- 권한이 **dangerous** 수준이라 런타임 권한 요청 흐름이 필요하다.
+- 픽업지 접근 감지는 `addProximityAlert()` / `removeProximityAlert()`. 모델과 리스너 이름은 reference에서 확인한다.
+- Android 표준 `ACCESS_FINE_LOCATION` 동작을 이 SDK가 보장하지 않는다.
+
+### 3.4 TextToSpeech / SpeechToText (3.3.1) 🔜
+
+- 모드: `HYBRID`(기본, 서버 우선 후 On-device로 전환), `SERVER`, `ON_DEVICE`.
+- `HYBRID`/`SERVER`에서 서버 기능을 쓰려면 My Project의 Client ID/Secret으로 `registerApp()`을 해야 한다.
+  **`ON_DEVICE`는 등록이 필요 없다.** 데모 안정성을 위해 `ON_DEVICE`부터 검증하는 것을 권장한다. `[확인 필요]` 에뮬레이터 동작.
+- Client ID/Secret은 코드에 쓰지 않는다. `local.properties`에서 읽는다.
+- 한국어는 `Locale.KOREA`(ko-KR). `speak()`나 `request()` 전에 `setLocale()`.
+- TTS는 `onConnected()` 이후에 `speak()`를 부른다(등록이 필요한 모드일 때).
+- STT는 **텍스트만 돌려준다.** 명령 실행이나 의도 파악은 하지 않는다. 의도 파악은 앱이 해야 한다(현재 보류).
+- STT 리스너는 `request()` **전에** 등록한다. 최종 결과는 `onUpdated(stt, completed = true)`.
+- 에뮬레이터에서 STT를 쓰려면 마이크 접근 설정이 필요하다.
+- 오류는 `ErrorType`으로 온다. 값이 늘어날 수 있으니 `when`에 `else` 분기를 둔다.
+
+### 3.5 AAOS 표준 API 🅰️
+
+- 차속, 기어, 외기 온도 같은 표준 데이터는 `CarPropertyManager`로 읽는다(예: `PERF_VEHICLE_SPEED`).
+- 주행/정차에 따른 UI 전환은 `CarUxRestrictions`로 처리한다.
+- Pleos 정책상 같은 기능이 AAOS에 있으면 AAOS를 따른다.
+- 일반 Android 에뮬레이터에는 Car API가 없을 수 있다. 화면 개발은 Mock으로 하고, 실제 동작은 Pleos 에뮬레이터에서 확인한다.
+
+## 4. Mock 작성 기준
+
+Coming Soon이나 미선정 API는 Mock으로 먼저 만든다. 나중에 실제 SDK로 바꿀 때 화면 코드가 안 바뀌도록 실제 SDK의 성질을 흉내 낸다.
+
+- **비동기**로 만든다(`suspend` 또는 Flow). 즉시 값을 돌려주는 Mock은 실제 SDK로 바꿀 때 화면을 깨뜨린다.
+- `null`과 실패를 돌려주는 경우를 만든다. 실패 사유는 SDK 오류 분류(권한 없음, 미지원, 주행 중 제한, 연결 실패)를 흉내 낸다.
+- 값의 범위는 Virtual Console 기준에 맞춘다.
+
+| 값 | 범위 |
+|---|---|
+| 목표 온도 | 16 ~ 30°C, 0.5°C 단위 |
+| 시트 열선·통풍 | 통풍 3단계, Off, 열선 3단계 |
+| 풍량 | 0 ~ 8단계 |
+| 배터리 SOC | 0 ~ 100%, 1% 단위 |
+| 주행가능거리 | 0 ~ 1,000,000m, 1,000m 단위 |
+| 기어 | P, R, N, D |
+| 좌석 탑승 | 운전석·동승석·뒷좌석 좌우 Empty / Occupied |
+| 도어 | 앞·뒷좌석 좌우 열림 / 닫힘 |
+
+- 차량을 바꾸는 Mock(온도·좌석 설정)은 바로 반영하지 말고, 설정 후 상태 스트림으로 바뀐 값을 내보낸다.
+  실제 SDK도 Set 성공과 실제 반영이 다르기 때문이다.
+- Mock 파일과 클래스 이름에 `Mock`을 붙이고, 상단 주석에 어떤 실제 API를 흉내 내는지 적는다.
