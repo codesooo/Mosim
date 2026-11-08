@@ -17,7 +17,9 @@ private val menus = listOf(
     MosimRoute.PASSENGER to "동승자 선택",
     MosimRoute.ROUTE to "경로 추천",
     MosimRoute.VEHICLE to "차량 상태",
-    MosimRoute.PICKUP to "픽업 안내"
+    MosimRoute.PICKUP to "픽업 안내",
+    // A·B 화면이 없어서 C-1부터 시작하는 임시 입구. A-1~B-3이 연결되면 뺀다.
+    MosimRoute.PICKUP_EN_ROUTE to "C-1 픽업지 이동 중",
 )
 
 @Composable
