@@ -13,14 +13,12 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import com.example.mosim.platform.pleos.BoardingSignalSource
-import com.example.mosim.platform.pleos.BoardingSignalSourceProvider
 import com.example.mosim.platform.pleos.BoardingSignals
 import com.example.mosim.platform.pleos.DoorSignal
+import com.example.mosim.platform.pleos.PickupSourceProvider
 import com.example.mosim.ui.components.ChipSize
 import com.example.mosim.ui.components.ChipTone
 import com.example.mosim.ui.components.InfoCard
@@ -36,7 +34,7 @@ import com.example.mosim.ui.theme.MosimTypography
 import com.example.mosim.ui.theme.PleosColor
 import com.example.mosim.ui.theme.PleosTypography
 import com.example.mosim.ui.theme.strong
-import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.StateFlow
 
 /*
  * D-1 탑승 확인 (정차 중).
@@ -66,12 +64,12 @@ fun BoardingConfirmScreen(
     onBack: () -> Unit,
     onSelectOtherPassenger: () -> Unit,
     onConfirmBoarding: () -> Unit,
-    source: BoardingSignalSource = BoardingSignalSourceProvider.source,
+    boardingSignals: StateFlow<BoardingSignals> = PickupSourceProvider.boardingSignals,
 ) {
-    // 실패하면 마지막으로 받은 신호를 그대로 둔다. 버튼은 꺼진 채로 남고 "다른 동승자"·Back은 쓸 수 있다.
+    // C-2에서 시작한 탑승 신호를 이어서 본다(PickupSourceProvider.boardingSignals 설명 참고).
+    // 실패하면 마지막으로 받은 신호가 그대로 남는다. 버튼은 꺼진 채로 남고 "다른 동승자"·Back은 쓸 수 있다.
     // [확인 필요] 신호 실패를 화면에 어떻게 보여 줄지 디자인이 없다.
-    val signalFlow = remember(source) { source.signals().catch { } }
-    val signals by signalFlow.collectAsState(initial = BoardingSignals())
+    val signals by boardingSignals.collectAsState()
 
     BoardingConfirmContent(
         state = BoardingConfirmUiState(

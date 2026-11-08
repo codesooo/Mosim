@@ -15,9 +15,12 @@ import org.junit.Test
 
 class MockBoardingSignalSourceTest {
 
+    private fun source(scenario: Scenario) =
+        MockBoardingSignalSource(scenario, stepDelayMs = 0, waitForPassengerMs = 0)
+
     @Test
     fun `정상 탑승이면 신호가 하나씩 들어와 마지막에 다 모인다`() = runBlocking {
-        val emitted = MockBoardingSignalSource(Scenario.Normal, stepDelayMs = 0).signals().toList()
+        val emitted = source(Scenario.Normal).signals().toList()
 
         assertFalse(emitted.first().allDetected)
         assertNull(emitted.first().passengerDoor)
@@ -28,7 +31,7 @@ class MockBoardingSignalSourceTest {
 
     @Test
     fun `벨트를 안 매면 끝까지 다 모이지 않는다`() = runBlocking {
-        val last = MockBoardingSignalSource(Scenario.BeltNotBuckled, stepDelayMs = 0).signals().toList().last()
+        val last = source(Scenario.BeltNotBuckled).signals().toList().last()
 
         assertEquals(DoorSignal.ClosedAfterOpen, last.passengerDoor)
         assertEquals(false, last.passengerSeatBeltBuckled)
@@ -40,7 +43,7 @@ class MockBoardingSignalSourceTest {
         val emitted = mutableListOf<BoardingSignals>()
         var error: Throwable? = null
 
-        MockBoardingSignalSource(Scenario.ConnectionFailed, stepDelayMs = 0).signals()
+        source(Scenario.ConnectionFailed).signals()
             .catch { error = it }
             .collect { emitted += it }
 

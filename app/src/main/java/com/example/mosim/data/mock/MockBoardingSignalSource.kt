@@ -13,12 +13,15 @@ import kotlinx.coroutines.flow.flow
  *  - AAOS CarPropertyManager 기어(정차 판단)
  *
  * 실제 콜백처럼 신호가 시간차를 두고 하나씩 들어온다.
- * 순서: 정차 → 도어 열림 → 착석 → 도어 닫힘 → 벨트 착용
+ * 순서: 정차 → (동승자가 올 때까지 대기) → 도어 열림 → 착석 → 도어 닫힘 → 벨트 착용
+ * C-2에서 구독을 시작하고, 도어가 열리면 D-1으로 넘어가 같은 스트림을 이어서 본다.
  * [확인 필요] 실제 차량에서 신호가 오는 순서와 간격은 에뮬레이터에서 확인한다.
  */
 class MockBoardingSignalSource(
     private val scenario: Scenario = Scenario.Normal,
     private val stepDelayMs: Long = 1_200L, // 시연 영상에서 하나씩 바뀌는 게 보이도록 잡은 값
+    // C-2 준비 항목 적용(약 5.6초) 뒤 "탑승 대기 중"이 보이도록 잡은 시간. 실제로는 동승자가 언제 올지 모른다.
+    private val waitForPassengerMs: Long = 8_000L,
 ) : BoardingSignalSource {
 
     enum class Scenario {
@@ -32,11 +35,11 @@ class MockBoardingSignalSource(
     }
 
     override fun signals(): Flow<BoardingSignals> = flow {
-        // 정차 확인 뒤에 D-1에 들어오므로 정차는 처음부터 true다. 나머지는 아직 신호가 없다(null).
+        // 픽업지 정차 뒤(C-2)에 구독하므로 정차는 처음부터 true다. 나머지는 아직 신호가 없다(null).
         var signals = BoardingSignals(vehicleStopped = true)
         emit(signals)
 
-        delay(stepDelayMs)
+        delay(waitForPassengerMs)
         signals = signals.copy(passengerDoor = DoorSignal.Open)
         emit(signals)
 
