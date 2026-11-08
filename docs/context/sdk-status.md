@@ -61,11 +61,11 @@
 | 도어 감지 | Door | `getCurrentDoorPosition`, `registerDoorPosition` | `CAR_DOORS` |
 | 실내 온도 조회 | HVAC | `getHvacTemperature`, `getHvacTemperatureCurrent`, `registerHvacTemperature` | `CAR_CLIMATE` |
 | 실내 온도 설정 🔜 | HVAC | `setHvacTemperature` | `CONTROL_CAR_CLIMATE` |
-| 좌석 위치·등받이 🔜 | Seat | `moveSeatForeAft`, `moveSeatBackrestAngle` | `CONTROL_CAR_SEATS` |
+| 좌석 위치·등받이 🔜 | Seat | `moveSeatForeAft`, `moveSeatBackrestAngle` — 목표값이 아니라 FORWARD/BACKWARD/STOP 방향 이동. 구현 방법은 `docs/reference/pleos/08_Vehicle_SDK_API_상세_모심용.md` 5절 | `CONTROL_CAR_SEATS` |
 | 시트 열선·통풍 🔜 | Seat | `setHvacSeatTemperature`, `setHvacSeatVentilation` (조회는 `getHvacSeatTemperature`, `getHvacSeatVentilationState`) | `CONTROL_CAR_SEATS` / `CAR_SEATS` |
 | EV 배터리 | EvBattery | `getEvBatteryStateOfCharge`, `registerEvBatteryStateOfCharge` | `CAR_ENERGY` |
 | 연료량 | Fuel | `getFuelPercent`, `registerFuelPercent` | `CAR_ENERGY` |
-| 주행가능거리 | `[확인 필요]` | 조회용 메서드가 색인에 없다. `RangeRemainingListener`는 문서에서 숨겨졌고 `setRangeRemainingDistance`만 보인다 | |
+| 주행가능거리 | 없음 | Vehicle SDK로 조회 불가. `setRangeRemainingDistance`는 사용 중단(Deprecated). 대안은 `docs/reference/pleos/08_Vehicle_SDK_API_상세_모심용.md` 9절 | |
 
 Area 예: 운전석 `SeatValue.ROW_1_LEFT`, 동승석 `SeatValue.ROW_1_RIGHT`. `[확인 필요]` 동승석이 RIGHT인지는 에뮬레이터에서 확인한다.
 
@@ -145,7 +145,7 @@ Coming Soon이나 미선정 API는 Mock으로 먼저 만든다. 나중에 실제
 | 시트 열선·통풍 | 통풍 3단계, Off, 열선 3단계 |
 | 풍량 | 0 ~ 8단계 |
 | 배터리 SOC | 0 ~ 100%, 1% 단위 |
-| 주행가능거리 | 0 ~ 1,000,000m, 1,000m 단위 |
+| 주행가능거리 | 0 ~ 1,000,000m, 1,000m 단위. Vehicle SDK로는 조회 불가라 Mock 출처는 `[확인 필요]` — 후보는 08 문서 9절 참고 |
 | 기어 | P, R, N, D |
 | 좌석 탑승 | 운전석·동승석·뒷좌석 좌우 Empty / Occupied |
 | 도어 | 앞·뒷좌석 좌우 열림 / 닫힘 |
