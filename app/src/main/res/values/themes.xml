@@ -1,4 +1,6 @@
 <resources>
     <!-- 실제 색은 Compose의 ui/theme에서 정한다. 여기는 액티비티 창 배경만 담당한다. -->
-    <style name="Theme.Mosim" parent="android:Theme.Material.Light.NoActionBar" />
+    <style name="Theme.Mosim" parent="android:Theme.Material.Light.NoActionBar">
+        <item name="android:windowBackground">@color/mosim_background</item>
+    </style>
 </resources>
