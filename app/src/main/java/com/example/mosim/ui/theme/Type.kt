@@ -21,6 +21,8 @@ import com.example.mosim.R
  */
 val AstaSans = FontFamily(
     Font(R.font.asta_sans_regular, FontWeight.Normal),
+    // Pleos 토큰에는 없지만 E-1 에스코트 화면 보조 문구가 500을 쓴다.
+    Font(R.font.asta_sans_medium, FontWeight.Medium),
     Font(R.font.asta_sans_bold, FontWeight.Bold),
     Font(R.font.asta_sans_extrabold, FontWeight.ExtraBold),
 )
@@ -55,16 +57,34 @@ fun TextStyle.strong() = copy(fontWeight = FontWeight.Bold)
 
 fun TextStyle.extraStrong() = copy(fontWeight = FontWeight.ExtraBold)
 
-/** 모심 화면 v2에서 토큰에 없는 크기를 쓴 곳. */
+private fun mosimStyle(size: Int, weight: FontWeight) = TextStyle(
+    fontFamily = AstaSans,
+    fontWeight = weight,
+    fontSize = size.sp,
+    lineHeight = (size * 1.2f).sp,
+    color = PleosColor.TextDarkPrimary,
+)
+
+/**
+ * 모심 화면 v2에서 Pleos 토큰에 없는 크기·굵기를 쓴 곳.
+ * 피그마는 행간 100%로 그렸지만 한글이 잘리지 않게 120%로 잡았다.
+ */
 object MosimTypography {
-    // B-1 판단 배너 제목 "픽업 전 충전이 필요합니다" (44 Bold, 행간 100%)
-    val BannerTitle = TextStyle(
-        fontFamily = AstaSans,
-        fontWeight = FontWeight.Bold,
-        fontSize = 44.sp,
-        lineHeight = 52.sp,
-        color = PleosColor.TextDarkPrimary,
-    )
+    // B-1 판단 배너 제목 "픽업 전 충전이 필요합니다"
+    val BannerTitle = mosimStyle(44, FontWeight.Bold)
+
+    // E-1 에스코트 모드: 동승자 이름 "엄마"
+    val HeroName = mosimStyle(72, FontWeight.Bold)
+
+    // E-1 에스코트 모드: 예상 도착 "09:12"
+    val HeroEta = mosimStyle(140, FontWeight.Bold).copy(lineHeight = 140.sp)
+
+    // E-1 보조 문구 "서울대병원 본관", "남은 거리 14.6km · 43분"
+    val HeroSub = mosimStyle(30, FontWeight.Medium)
+
+    // A-1 프로필 칩, 신규 등록 설명, A-2 입력 필드 라벨 (22)
+    val Caption = mosimStyle(22, FontWeight.Normal)
+    val CaptionStrong = mosimStyle(22, FontWeight.Bold)
 }
 
 /**
