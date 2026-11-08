@@ -46,20 +46,18 @@ import kotlinx.coroutines.delay
 data class PickupPrepUiState(
     val passengerName: String,
     val stopConfirmedAt: String,
-    val savedCondition: TempCondition,
-    val currentCondition: TempCondition,
-    val appliedTemp: String,
-    val tempNote: String,
+    val savedSetTemp: Double,
+    val savedOutsideTemp: Double,
+    val currentOutsideTemp: Double,
+    val currentWeather: String,
     val prepItems: List<PrepItem>,
     val doneCount: Int,
     val totalCount: Int,
     val waitingText: String,
-)
-
-data class TempCondition(
-    val label: String,
-    val value: String,
-)
+) {
+    val recommendation: CabinTempRecommendation
+        get() = recommendCabinTemp(savedSetTemp, savedOutsideTemp, currentOutsideTemp)
+}
 
 data class PrepItem(
     val label: String,
@@ -67,16 +65,23 @@ data class PrepItem(
     val chipText: String,
 )
 
-// Mock: 피그마 C-2 예시 값
+// Mock: 피그마 C-2 예시 값. 24 − 0.1 × (7 − 5) = 23.8 → 0.5 단위 반올림 24℃
+private const val MOCK_SAVED_SET_TEMP = 24.0
+private const val MOCK_SAVED_OUTSIDE_TEMP = 5.0
+private const val MOCK_CURRENT_OUTSIDE_TEMP = 7.0
+private val MockAppliedTemp =
+    recommendCabinTemp(MOCK_SAVED_SET_TEMP, MOCK_SAVED_OUTSIDE_TEMP, MOCK_CURRENT_OUTSIDE_TEMP).temp
+
+// Mock: 피그마 C-2 예시 값. 공조 행은 실내 온도 카드와 같은 추천 온도를 보여 준다.
 private val MockPickupPrepState = PickupPrepUiState(
     passengerName = "엄마",
     stopConfirmedAt = "08:27",
-    savedCondition = TempCondition("저장 당시", "외부 5℃ · 설정 24℃"),
-    currentCondition = TempCondition("현재", "외부 7℃ · 비"),
-    appliedTemp = "24℃",
-    tempNote = "저장 당시와 현재 외부 기온 차이가 작아 저장값을 그대로 적용",
+    savedSetTemp = MOCK_SAVED_SET_TEMP,
+    savedOutsideTemp = MOCK_SAVED_OUTSIDE_TEMP,
+    currentOutsideTemp = MOCK_CURRENT_OUTSIDE_TEMP,
+    currentWeather = "비",
     prepItems = listOf(
-        PrepItem("공조", "24℃ · 풍량 2", "적용"),
+        PrepItem("공조", "${formatTemp(MockAppliedTemp)} · 풍량 2", "적용"),
         PrepItem("좌석", "조수석 · 110° · 열선 1단", "적용"),
         PrepItem("음악", "조용한 음악 · 볼륨 4", "적용"),
         PrepItem("조명", "웰컴 (지원 차량)", "적용"),
@@ -142,12 +147,25 @@ fun PickupPrepContent(
                     modifier = Modifier.padding(top = TempCardItemGap),
                     verticalArrangement = Arrangement.spacedBy(TempCardItemGap),
                 ) {
+                    val recommendation = state.recommendation
                     Row(horizontalArrangement = Arrangement.spacedBy(CompareBoxGap)) {
-                        TempCompareBox(state.savedCondition, Modifier.weight(1f))
-                        TempCompareBox(state.currentCondition, Modifier.weight(1f))
+                        TempCompareBox(
+                            label = "저장 당시",
+                            value = "외부 ${formatTemp(state.savedOutsideTemp)} · 설정 ${formatTemp(state.savedSetTemp)}",
+                            modifier = Modifier.weight(1f),
+                        )
+                        TempCompareBox(
+                            label = "현재",
+                            value = "외부 ${formatTemp(state.currentOutsideTemp)} · ${state.currentWeather}",
+                            modifier = Modifier.weight(1f),
+                        )
                     }
-                    AppliedTempBox(temp = state.appliedTemp)
-                    Text(text = state.tempNote, style = MosimTypography.Caption, color = MosimColor.TextHint)
+                    AppliedTempBox(temp = formatTemp(recommendation.temp))
+                    Text(
+                        text = tempNote(state.savedSetTemp, recommendation),
+                        style = MosimTypography.Caption,
+                        color = MosimColor.TextHint,
+                    )
                 }
             }
 
@@ -187,10 +205,19 @@ fun PickupPrepContent(
     }
 }
 
+private fun tempNote(savedSetTemp: Double, recommendation: CabinTempRecommendation): String =
+    if (!recommendation.adjusted) {
+        "저장 당시와 현재 외부 기온 차이가 작아 저장값을 그대로 적용"
+    } else {
+        // [확인 필요] 조정한 경우의 문구는 피그마에 없다. 디자인이 나오면 교체한다.
+        "외부 기온 차이를 반영해 저장값 ${formatTemp(savedSetTemp)}에서 조정"
+    }
+
 /** "저장 당시" / "현재" 회색 비교 박스 */
 @Composable
 private fun TempCompareBox(
-    condition: TempCondition,
+    label: String,
+    value: String,
     modifier: Modifier = Modifier,
 ) {
     Column(
@@ -199,8 +226,8 @@ private fun TempCompareBox(
             .padding(CompareBoxPadding),
         verticalArrangement = Arrangement.spacedBy(CompareBoxItemGap),
     ) {
-        Text(text = condition.label, style = MosimTypography.Caption, color = PleosColor.TextDarkTertiary)
-        Text(text = condition.value, style = PleosTypography.LabelMedium.strong())
+        Text(text = label, style = MosimTypography.Caption, color = PleosColor.TextDarkTertiary)
+        Text(text = value, style = PleosTypography.LabelMedium.strong())
     }
 }
 
@@ -268,5 +295,18 @@ private fun LightStatusIndicator(text: String) {
 private fun PickupPrepPreview() {
     MosimTheme {
         PickupPrepContent(state = MockPickupPrepState, onBack = {}, onAdjustSettings = {})
+    }
+}
+
+@Preview(name = "C-2 외기 차이로 조정", widthDp = 1700, heightDp = 1184)
+@Composable
+private fun PickupPrepAdjustedPreview() {
+    MosimTheme {
+        // Mock: 외기가 5℃ → 25℃로 올라 24 − 0.1 × 20 = 22℃로 낮춘 경우
+        PickupPrepContent(
+            state = MockPickupPrepState.copy(currentOutsideTemp = 25.0, currentWeather = "맑음"),
+            onBack = {},
+            onAdjustSettings = {},
+        )
     }
 }
