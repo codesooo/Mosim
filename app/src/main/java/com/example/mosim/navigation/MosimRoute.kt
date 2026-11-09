@@ -10,4 +10,5 @@ object MosimRoute {
     const val ROUTE = "route"
     const val VEHICLE = "vehicle"
     const val PICKUP = "pickup"
+    const val CHARGING_STATION = "charging_station"
 }
