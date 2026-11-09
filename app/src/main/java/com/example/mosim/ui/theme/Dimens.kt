@@ -34,4 +34,7 @@ object MosimDimens {
 
     // ── 버튼 (Pleos Large) ──
     val ButtonLargeHeight = 100.dp
+
+    // 넓은 버튼 너비. 피그마 모심 화면 v2 기준 400 (B-1 "에스코트 계획 보기").
+    val ButtonWideWidth = 400.dp
 }

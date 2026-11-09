@@ -1,4 +1,4 @@
-package com.example.mosim.navigation
+    package com.example.mosim.navigation
 
 import androidx.compose.runtime.Composable
 import androidx.navigation.compose.NavHost
@@ -25,7 +25,13 @@ fun MosimNavHost() {
             RouteRecommendScreen(onBack = { navController.popBackStack() })
         }
         composable(MosimRoute.VEHICLE) {
-            VehicleStatusScreen(onBack = { navController.popBackStack() })
+            // B-2(충전소 경유 선택), B-3(에스코트 계획 확정) 화면이 아직 없어 이동하지 않는다. 다시 점검은 Mock이라 할 일이 없다.
+            VehicleStatusScreen(
+                onBack = { navController.popBackStack() },
+                onShowChargingStations = {},
+                onShowEscortPlan = {},
+                onRecheck = {},
+            )
         }
         composable(MosimRoute.PICKUP) {
             PickupGuideScreen(onBack = { navController.popBackStack() })
