@@ -1,5 +1,6 @@
 package com.example.mosim.feature.escort.command
 
+import com.example.mosim.data.place.PlaceKind
 import com.example.mosim.feature.escort.command.VoiceCommandParser.BACKREST_STEP_DEGREES
 import com.example.mosim.feature.escort.command.VoiceCommandParser.DEFAULT_TEMPERATURE_STEP_CELSIUS
 import org.junit.Assert.assertEquals

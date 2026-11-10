@@ -1,5 +1,7 @@
 package com.example.mosim.feature.escort.command
 
+import com.example.mosim.data.place.PlaceKind
+
 /**
  * 동승자 음성 문장을 해석한 결과다.
  *
@@ -28,12 +30,4 @@ sealed interface VoiceCommand {
 
     /** 규칙에 맞는 표현이 없다. 원문은 로그와 안내에 쓴다. */
     data class Unknown(val text: String) : VoiceCommand
-}
-
-enum class PlaceKind {
-    CAFE,
-    RESTROOM,
-    CONVENIENCE_STORE,
-    REST_AREA,
-    EV_CHARGER,
 }

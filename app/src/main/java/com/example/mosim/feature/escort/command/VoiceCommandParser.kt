@@ -1,5 +1,7 @@
 package com.example.mosim.feature.escort.command
 
+import com.example.mosim.data.place.PlaceKind
+
 /**
  * STT가 넘긴 문장을 [VoiceCommand]로 바꾼다.
  *
