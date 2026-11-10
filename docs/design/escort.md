@@ -45,7 +45,7 @@ interface SpeechInput {
 
 - STT 쪽은 문장만 넘긴다. 명령 해석과 실행 정책은 에스코트 쪽이 맡는다.
   이유: STT SDK는 텍스트만 돌려주고, 해석은 "자동 실행인지 승인이 필요한지"와 붙어 있어 같은 곳에 두는 편이 설명하기 쉽다.
-- 에스코트 쪽 개발·테스트는 문장을 직접 넣는 `FakeSpeechInput`으로 한다. 팀원 구현이 들어오면 provider에서 바꾼다.
+- 에스코트 쪽 개발·테스트는 문장을 직접 넣는 `MockSpeechInput.say()`로 한다. 팀원 구현이 들어오면 provider에서 바꾼다.
 - 가정: 인식 실패는 STT 쪽에서 처리하고, 에스코트 쪽은 성공한 문장만 받는다. (합의 필요 1)
 
 ## 4. 패키지와 파일
@@ -64,12 +64,14 @@ feature/escort/
     VoiceCommand.kt          sealed class
     VoiceCommandParser.kt    키워드 규칙. Android 의존성 없음
 platform/pleos/
+  SourceResult.kt            호출 결과(Success / Failure + FailureReason). SDK onFailed를 값으로 바꾼다
+  GeoPoint.kt                좌표 (latitude, longitude)
   SpeechInput.kt             STT 경계
   CabinControl.kt            실내 설정 경계 (Vehicle Control 🔜)
   TripSource.kt              ETA·남은 거리·현재 위치·경유지 경계 (NaviHelper ✅)
 data/
-  PlaceSearchSource.kt       장소 검색 경계
-  mock/                      FakeSpeechInput, MockCabinControl, MockTripSource, MockPlaceSearchSource
+  place/PlaceSearch.kt       PlaceKind, PlaceCandidate, PlaceSearchSource
+  mock/                      MockSpeechInput, MockCabinControl, MockTripSource, MockPlaceSearchSource
   remote/kakao/
     KakaoPlaceSearchSource.kt  HttpURLConnection + org.json (라이브러리 추가 없음)
 ui/components/
@@ -78,6 +80,16 @@ ui/components/
 
 - DI 라이브러리는 쓰지 않는다. ViewModel은 `viewModel { EscortViewModel(...) }` initializer로 만든다.
 - 화면에는 NavController를 넘기지 않는다. ViewModel 상태를 보고 NavHost가 이동한다.
+
+### 경계 규칙 (2단계에서 정함)
+
+- 실패는 예외가 아니라 `SourceResult.Failure(reason)`로 돌려준다. 사유는 앱이 다르게 처리할 단위로만 묶었다:
+  권한 없음, 미지원, 잘못된 요청(범위 밖·경유지 초과), 주행 중 제한, 연결 실패, 네트워크, 기타.
+- set 요청의 Success는 "요청이 받아들여짐"이다. 실제 값은 `StateFlow`로 나중에 바뀐다(실제 SDK와 같게).
+- `CabinControl.setPassengerBackrestAngle`은 목표 각도를 받는다. 실제 SDK의 방향 이동 방식은 구현체가 감춘다.
+- Mock은 생성자로 실패 사유와 지연을 바꿀 수 있다. `MockTripSource.simulateTrafficDelay()`는 지연 감지 시연용 Mock 전용 조작이다.
+- Mock 범위 `[확인 필요]`: 음량 0~10, 등받이 90~135°. 온도는 Virtual Console 기준 16~30°C, 0.5°C 단위.
+- 장소 검색 결과가 없으면 실패가 아니라 빈 목록이다. 경유 시 늘어나는 시간은 장소 API가 주지 않는다 `[확인 필요]`.
 
 ## 5. 상태 모델
 
