@@ -10,6 +10,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.navigation
 import androidx.navigation.compose.rememberNavController
 import com.example.mosim.feature.escort.EscortDependencies
+import com.example.mosim.feature.escort.EscortReplanScreen
 import com.example.mosim.feature.escort.EscortScreen
 import com.example.mosim.feature.escort.EscortViewModel
 import com.example.mosim.feature.home.HomeScreen
@@ -45,6 +46,13 @@ fun MosimNavHost() {
                     viewModel = escortViewModel(navController, entry),
                     // [확인 필요] 임시 메인에서 들어오므로 돌아갈 수 있게 둔다. 실제 흐름에서는 최상단(null) 검토.
                     onBack = { navController.popBackStack() },
+                    onProposal = { navController.navigate(MosimRoute.ESCORT_REPLAN) { launchSingleTop = true } },
+                )
+            }
+            composable(MosimRoute.ESCORT_REPLAN) { entry ->
+                EscortReplanScreen(
+                    viewModel = escortViewModel(navController, entry),
+                    onClosed = { navController.popBackStack(MosimRoute.ESCORT, inclusive = false) },
                 )
             }
         }

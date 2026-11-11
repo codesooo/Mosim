@@ -48,6 +48,39 @@ object EscortMessages {
 
     fun backrestValue(degrees: Int?): String = degrees?.let { "조수석 $it°" } ?: UNKNOWN_DISPLAY
 
+    // ---- F-1 이동 계획 수정 ----
+
+    const val KEEP_CURRENT_ROUTE = "기존 경로 유지"
+
+    fun minutesValue(minutes: Int?): String = minutes?.let { "${it}분" } ?: UNKNOWN_DISPLAY
+
+    /** 1km 미만은 m, 이상은 소수 한 자리 km. 거리를 모르면 null(문구에서 뺀다). */
+    fun distance(meters: Int?): String? = when {
+        meters == null -> null
+        meters < 1_000 -> "${meters}m"
+        else -> "${String.format(Locale.US, "%.1f", meters / 1000.0)}km"
+    }
+
+    /** 제안 장소 밑 설명 "휴게소 · 1.8km". 아는 값만 잇는다. */
+    fun placeSummary(categoryLabel: String?, distanceMeters: Int?): String? =
+        listOfNotNull(categoryLabel, distance(distanceMeters)).joinToString(" · ").ifEmpty { null }
+
+    /** 칩 "경유지 1/2 여유". 빈 자리가 없으면 경유 버튼도 꺼진다. */
+    fun waypointSlots(freeSlots: Int, maxSlots: Int): String =
+        if (freeSlots <= 0) "경유지 자리 없음" else "경유지 $freeSlots/$maxSlots 여유"
+
+    fun cabinAction(action: CabinAction): String = when (action) {
+        is CabinAction.SetMusicVolume -> "음악 볼륨 ${action.from} → ${action.to}"
+    }
+
+    /** "함께 처리: 음악 볼륨 4 → 3". 함께 할 일이 없으면 null. */
+    fun bundledActions(actions: List<CabinAction>): String? =
+        if (actions.isEmpty()) null else "함께 처리: " + actions.joinToString(", ") { cabinAction(it) }
+
+    fun addWaypointButton(placeName: String): String = "$placeName 경유"
+
+    fun spokenRequest(text: String): String = "“$text”"
+
     /** E-2 토스트 한 줄 "온도를 24℃ → 23℃로 낮췄어요 · 선호 범위 내 자동 조절" */
     fun noticeLine(message: String, detail: String?): String =
         if (detail == null) message else "$message · $detail"

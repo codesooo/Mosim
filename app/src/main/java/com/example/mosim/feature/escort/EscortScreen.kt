@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -47,8 +48,15 @@ import java.time.LocalTime
 fun EscortScreen(
     viewModel: EscortViewModel,
     onBack: (() -> Unit)?,
+    onProposal: () -> Unit,
 ) {
     val state by viewModel.uiState.collectAsState()
+    // 제안은 지연 감지나 음성 요청으로 화면 밖에서 생긴다. 생기면 F-1로 넘긴다.
+    // E-1로 돌아왔을 때 제안이 남아 있으면 다시 넘긴다(키가 같아도 화면에 다시 들어오면 효과가 새로 돈다).
+    val hasProposal = state.proposal != null
+    LaunchedEffect(hasProposal) {
+        if (hasProposal) onProposal()
+    }
     EscortContent(state = state, onBack = onBack)
 }
 
