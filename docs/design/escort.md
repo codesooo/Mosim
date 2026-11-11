@@ -91,6 +91,18 @@ ui/components/
 - Mock 범위 `[확인 필요]`: 음량 0~10, 등받이 90~135°. 온도는 Virtual Console 기준 16~30°C, 0.5°C 단위.
 - 장소 검색 결과가 없으면 실패가 아니라 빈 목록이다. 경유 시 늘어나는 시간은 장소 API가 주지 않는다 `[확인 필요]`.
 
+### ViewModel 규칙 (3단계에서 정함)
+
+- `EscortViewModel(scope, ...)`는 lifecycle 2.9.1의 `ViewModel(CoroutineScope)` 생성자를 쓴다(라이브러리에서 시그니처 확인).
+  테스트가 메인 스레드 없이 범위를 넘길 수 있어 `kotlinx-coroutines-test`를 추가하지 않아도 된다.
+- `EscortDependencies.createViewModel()`이 범위를 먼저 만들고 Mock과 ViewModel에 같이 넘긴다.
+- 음성 명령은 들어온 순서대로 하나씩 처리한다.
+- 기록(`history`)과 안내(`notice`)는 한 번의 상태 갱신으로 반영한다. 중간 상태가 화면에 보이지 않게 하기 위해서다.
+- 조절 범위 조회(Capability)가 실패하면 그 자리에서 실패로 기록·안내하고 멈춘다. 다른 문구로 덮어쓰지 않는다.
+- 동승자 정보는 `data/passenger/PassengerProfile`, 고정값은 `MockEscortTrips`(A-1·D-1이 아직 없어서).
+- 문구는 `EscortMessages`에 모았다. 받침에 따라 을/를, 은/는을 고른다.
+- `[확인 필요]` 값: 토스트 4초, 지연 기준 15분, 검색 반경 2km, 휴식 경유 시 음량 3단계(`restMusicVolume`).
+
 ## 5. 상태 모델
 
 ```kotlin
@@ -148,6 +160,9 @@ data class ReplanProposal(
 - "○○ 경유": `TripSource.addWaypoint` → 성공하면 `bundledActions` 실행 → E-1. 실패하면 F-1에 오류를 보여 준다.
 - 경유지 빈 자리가 없으면 경유 버튼을 비활성화한다.
 - 제안 문구는 프로필 규칙으로 만든 고정 문장이다. LLM을 쓰지 않는다.
+- 휴식을 원하지 않는 동승자(`prefersRestOnLongTrip = false`)는 경유를 묻지 않고 "도착이 n분 늦어질 것 같아요"만 알린다.
+- 제안에 답하면(승인·거절) 그때 도착 시각을 새 기준으로 잡는다. 같은 지연을 두 번 묻지 않기 위해서다.
+- 휴식 제안 문구는 "경로상" 대신 "가까운"을 쓴다. 반경 검색이라 경로 위인지 보장하지 못한다.
 
 ## 8. 카카오 연동 확인 목록
 
