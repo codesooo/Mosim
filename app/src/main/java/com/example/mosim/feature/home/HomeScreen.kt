@@ -17,7 +17,9 @@ private val menus = listOf(
     MosimRoute.PASSENGER to "동승자 선택",
     MosimRoute.ROUTE to "경로 추천",
     MosimRoute.VEHICLE to "차량 상태",
-    MosimRoute.PICKUP to "픽업 안내"
+    MosimRoute.PICKUP to "픽업 안내",
+    // 탑승 감지(D-1)가 아직 없어 임시 메인에서 바로 들어간다.
+    MosimRoute.ESCORT_FLOW to "에스코트 모드",
 )
 
 @Composable

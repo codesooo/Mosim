@@ -2,6 +2,9 @@ package com.example.mosim.feature.escort
 
 import com.example.mosim.data.place.PlaceKind
 import com.example.mosim.platform.pleos.FailureReason
+import java.time.LocalTime
+import java.time.format.DateTimeFormatter
+import java.util.Locale
 
 /**
  * 에스코트 화면에 보여 줄 문구를 만든다.
@@ -11,6 +14,43 @@ object EscortMessages {
 
     fun celsius(value: Float): String =
         if (value % 1f == 0f) "${value.toInt()}℃" else "$value℃"
+
+    // ---- 화면 표시 값 (값을 모르면 UNKNOWN_DISPLAY. 0이나 기본값으로 바꿔 보여 주지 않는다) ----
+
+    const val UNKNOWN_DISPLAY = "—"
+
+    private val clockFormat = DateTimeFormatter.ofPattern("HH:mm")
+
+    fun clock(time: LocalTime?): String = time?.format(clockFormat) ?: UNKNOWN_DISPLAY
+
+    /** E-1 부제 "08:29 엄마 탑승 · 운전자 조작 최소화" */
+    fun escortSubtitle(boardedAt: LocalTime?, passengerName: String): String {
+        val boarded = if (boardedAt == null) "${passengerName} 탑승" else "${clock(boardedAt)} $passengerName 탑승"
+        return "$boarded · 운전자 조작 최소화"
+    }
+
+    /** "남은 거리 14.6km · 43분". 하나만 알면 아는 것만 보여 준다. */
+    fun remaining(distanceMeters: Int?, minutes: Int?): String {
+        val parts = listOfNotNull(
+            distanceMeters?.let { "남은 거리 ${String.format(Locale.US, "%.1f", it / 1000.0)}km" },
+            minutes?.let { "${it}분" },
+        )
+        return if (parts.isEmpty()) "남은 거리 $UNKNOWN_DISPLAY" else parts.joinToString(" · ")
+    }
+
+    fun temperatureValue(celsius: Float?): String = celsius?.let(::celsius) ?: UNKNOWN_DISPLAY
+
+    /**
+     * [확인 필요] 피그마는 "조용한 음악 · 4"처럼 곡 분위기를 같이 보여 준다.
+     * 음악 제어 방식이 정해지지 않아 재생 정보가 없으므로 음량만 보여 준다.
+     */
+    fun volumeValue(level: Int?): String = level?.let { "볼륨 $it" } ?: UNKNOWN_DISPLAY
+
+    fun backrestValue(degrees: Int?): String = degrees?.let { "조수석 $it°" } ?: UNKNOWN_DISPLAY
+
+    /** E-2 토스트 한 줄 "온도를 24℃ → 23℃로 낮췄어요 · 선호 범위 내 자동 조절" */
+    fun noticeLine(message: String, detail: String?): String =
+        if (detail == null) message else "$message · $detail"
 
     fun temperatureChanged(from: Float, to: Float): String {
         val verb = if (to < from) "낮췄어요" else "높였어요"

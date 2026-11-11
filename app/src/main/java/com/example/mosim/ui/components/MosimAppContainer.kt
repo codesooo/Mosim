@@ -32,7 +32,7 @@ import com.example.mosim.ui.theme.strong
 /**
  * 모든 모심 화면의 바깥 틀 (피그마 mosim_app_content).
  *
- * 구성: 제목·부제 → 본문(남은 높이를 채움) → 오른쪽 정렬 하단 버튼.
+ * 구성: 제목·부제(+ 오른쪽 headerTrailing) → 본문(남은 높이를 채움) → 오른쪽 정렬 하단 버튼.
  * 피그마 v2에는 뒤로가기 버튼이 있는 앱 바가 없다. 뒤로가기는 CCP Back 하드키(= Android Back)로만 처리한다.
  *
  * Back 규칙 (Pleos 06 문서 "CCP Back 하드키 → 앱 숨김 처리", 심사 필수)
@@ -45,6 +45,7 @@ fun MosimAppContainer(
     modifier: Modifier = Modifier,
     subtitle: String? = null,
     onBack: (() -> Unit)? = null,
+    headerTrailing: (@Composable RowScope.() -> Unit)? = null,
     bottomActions: (@Composable RowScope.() -> Unit)? = null,
     content: @Composable ColumnScope.() -> Unit,
 ) {
@@ -60,11 +61,18 @@ fun MosimAppContainer(
             .padding(MosimDimens.AppPadding),
         verticalArrangement = Arrangement.spacedBy(MosimDimens.SectionGap),
     ) {
-        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            Text(text = title, style = PleosTypography.TitleLarge.strong())
-            if (subtitle != null) {
-                Text(text = subtitle, style = PleosTypography.BodySmall, color = PleosColor.TextDarkTertiary)
+        // 제목 오른쪽 자리: E-2 자동 조절 토스트처럼 제목과 같은 줄에 붙는 요소용
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(MosimDimens.SectionGap),
+        ) {
+            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Text(text = title, style = PleosTypography.TitleLarge.strong())
+                if (subtitle != null) {
+                    Text(text = subtitle, style = PleosTypography.BodySmall, color = PleosColor.TextDarkTertiary)
+                }
             }
+            headerTrailing?.invoke(this)
         }
 
         Column(

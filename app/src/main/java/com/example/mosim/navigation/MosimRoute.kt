@@ -10,4 +10,9 @@ object MosimRoute {
     const val ROUTE = "route"
     const val VEHICLE = "vehicle"
     const val PICKUP = "pickup"
+
+    /** 에스코트 흐름(E-1 · F-1)을 묶는 중첩 그래프. 두 화면이 EscortViewModel 하나를 같이 쓴다. */
+    const val ESCORT_FLOW = "escort_flow"
+    const val ESCORT = "escort"
+    const val ESCORT_REPLAN = "escort_replan"
 }
