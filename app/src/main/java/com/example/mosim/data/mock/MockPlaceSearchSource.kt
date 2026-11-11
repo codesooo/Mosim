@@ -58,7 +58,8 @@ class MockPlaceSearchSource(
                 place("mock-cafe-c", "카페 C", "카페", 1_600, 37.5610, 126.9850),
             ),
             PlaceKind.REST_AREA to listOf(
-                place("mock-rest-a", "휴식 장소 A", "화장실 · 카페", 2_100, 37.5800, 126.9900),
+                // EscortViewModel 검색 반경(2km) 안에 들어오게 둔다.
+                place("mock-rest-a", "휴식 장소 A", "화장실 · 카페", 1_800, 37.5800, 126.9900),
             ),
             PlaceKind.RESTROOM to listOf(
                 place("mock-restroom-a", "공중화장실 A", "화장실", 700, 37.5650, 126.9820),

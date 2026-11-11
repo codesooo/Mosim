@@ -3,6 +3,7 @@ package com.example.mosim.data.mock
 import com.example.mosim.platform.pleos.SpeechInput
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 
 /**
@@ -18,6 +19,9 @@ class MockSpeechInput : SpeechInput {
     private val texts = MutableSharedFlow<String>(extraBufferCapacity = 8)
 
     override val recognizedTexts: Flow<String> = texts.asSharedFlow()
+
+    /** 듣는 쪽 수. 테스트가 ViewModel이 듣기 시작한 뒤에 말하도록 기다릴 때 쓴다. */
+    val listenerCount: StateFlow<Int> = texts.subscriptionCount
 
     fun say(text: String) {
         texts.tryEmit(text)
