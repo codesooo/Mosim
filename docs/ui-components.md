@@ -84,6 +84,7 @@ MosimAppContainer(
     title = "출발 전 점검",
     subtitle = "엄마 · 강남역 2번 출구 08:30 → 서울대병원",
     onBack = onBack,                 // 최상단 화면이면 넘기지 않는다(null)
+    headerTrailing = { … },          // 제목 오른쪽 요소(E-2 토스트). 없으면 생략
     bottomActions = {                // 버튼이 없는 화면은 생략
         PleosButton("다시 점검", onClick = {}, modifier = Modifier.width(280.dp))
         PleosButton("에스코트 계획 보기", onClick = {}, type = PleosButtonType.Filled, modifier = Modifier.width(400.dp))
@@ -260,7 +261,7 @@ MosimAppContainer(title = "…") {
 
 **E-2 자동 조절 알림**
 - E-1과 같다.
-- **없음:** 제목 옆 진한 토스트 "온도를 24℃ → 23℃로 낮췄어요 · 선호 범위 내 자동 조절". 피그마 레이어는 `toast/auto adjust`. Pleos 알림(System Notification)을 쓸지 직접 그릴지 결정이 필요하다.
+- 제목 옆 진한 토스트 "온도를 24℃ → 23℃로 낮췄어요 · 선호 범위 내 자동 조절"(피그마 `toast/auto adjust`)는 `feature/escort/EscortScreen.kt` 안에 직접 그렸다(`MosimAppContainer(headerTrailing)`). `[확인 필요]` Pleos System Notification으로 바꿀지.
 
 **F-1 지연 감지 · 휴식 제안**
 - `MosimAppContainer` ("이동 계획 수정")

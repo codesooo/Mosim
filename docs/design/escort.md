@@ -103,6 +103,16 @@ ui/components/
 - 문구는 `EscortMessages`에 모았다. 받침에 따라 을/를, 은/는을 고른다.
 - `[확인 필요]` 값: 토스트 4초, 지연 기준 15분, 검색 반경 2km, 휴식 경유 시 음량 3단계(`restMusicVolume`).
 
+### 화면 규칙 (4단계에서 정함)
+
+- E-1과 F-1은 중첩 그래프 `escort_flow`로 묶고, `EscortViewModel`은 그래프 backstack entry에 붙인다.
+  두 화면이 같은 상태를 보고, 흐름을 벗어나면 ViewModel과 Mock이 함께 정리된다.
+- E-2 토스트는 `MosimAppContainer`에 새로 추가한 `headerTrailing` 자리에 띄운다. 이 화면에서만 써서 화면 파일 안에 둔다.
+- 값을 모르면 "—"로 보여 준다(`EscortMessages.UNKNOWN_DISPLAY`).
+- 음악 카드는 피그마의 "조용한 음악 · 4" 대신 "볼륨 4"만 보여 준다. 재생 정보 출처가 없다 `[확인 필요]`.
+- 탑승 감지(D-1)가 없어 임시 메인에 "에스코트 모드" 버튼을 두었다. Back은 임시 메인으로 돌아간다 `[확인 필요]` 최상단 규칙 적용 여부.
+- 앱 안에서는 음성 문장을 넣을 방법이 없다(STT 팀원 담당). E-2는 계측 테스트(`EscortContentTest`)와 Preview로 확인한다.
+
 ## 5. 상태 모델
 
 ```kotlin
