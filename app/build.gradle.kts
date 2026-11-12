@@ -62,6 +62,7 @@ dependencies {
     implementation(libs.androidx.navigation.compose)
     implementation(libs.kakao.map)
     implementation(libs.pleos.vehicle)
+    implementation(libs.pleos.navi.helper)
 
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.ui)
