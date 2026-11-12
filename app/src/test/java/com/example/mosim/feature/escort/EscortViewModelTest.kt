@@ -12,6 +12,8 @@ import com.example.mosim.platform.pleos.TripSource
 import com.example.mosim.data.place.PlaceCandidate
 import com.example.mosim.data.place.PlaceKind
 import com.example.mosim.platform.pleos.RoadType
+import com.example.mosim.platform.pleos.CabinControl
+import com.example.mosim.platform.pleos.CabinFeature
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.asCoroutineDispatcher
@@ -42,6 +44,9 @@ class EscortViewModelTest {
     private var cabin = MockCabinControl(scope, requestDelayMillis = 0, applyDelayMillis = 10)
     private var trip = MockTripSource(scope, requestDelayMillis = 0, routingDelayMillis = 10)
     private var places = MockPlaceSearchSource(requestDelayMillis = 0)
+
+    /** 실제 SDK 구현처럼 동작을 바꿔야 하는 테스트에서만 넣는다. 없으면 [cabin]을 쓴다. */
+    private var cabinOverride: CabinControl? = null
     private var passenger = MockEscortTrips.MOTHER
 
     @After
@@ -55,10 +60,10 @@ class EscortViewModelTest {
             scope = scope,
             trip = MockEscortTrips.MOTHER_TO_HOSPITAL.copy(passenger = passenger),
             speechInput = speech,
-            cabinControl = cabin,
+            cabinControl = cabinOverride ?: cabin,
             tripSource = trip,
             placeSearch = places,
-            sourcesAreSimulated = true,
+            tripIsSimulated = true,
             noticeDurationMillis = noticeDurationMillis,
         )
         runBlocking { withTimeout(TIMEOUT) { speech.listenerCount.first { it > 0 } } }
@@ -85,6 +90,41 @@ class EscortViewModelTest {
         val record = state.history.single()
         assertEquals(ActionOutcome.SUCCEEDED, record.outcome)
         assertTrue(record.isSimulated)
+    }
+
+    @Test
+    fun `공조가 꺼져 있었으면 켠 것도 기록하고, 실제로 처리한 온도는 Mock 실행으로 표시하지 않는다`() {
+        cabinOverride = ClimateOffCabinControl(cabin)
+        val viewModel = createViewModel()
+
+        speech.say("좀 덥다")
+
+        val state = viewModel.awaitState { it.cabinTemperatureCelsius == 23f && it.history.size == 2 }
+        assertEquals(listOf("공조 켜기", "온도 24℃ → 23℃"), state.history.map { it.description })
+        assertTrue(state.history.all { it.outcome == ActionOutcome.SUCCEEDED && !it.isSimulated })
+    }
+
+    @Test
+    fun `공조를 켜지 못하면 온도를 바꾸지 않고 실패로 알린다`() {
+        cabinOverride = ClimateOffCabinControl(cabin, powerOnResult = SourceResult.Failure(FailureReason.UNKNOWN))
+        val viewModel = createViewModel()
+
+        speech.say("좀 덥다")
+
+        val state = viewModel.awaitState { it.history.isNotEmpty() }
+        settle()
+        assertEquals("공조 켜기", state.history.single().description)
+        assertEquals(ActionOutcome.FAILED, state.history.single().outcome)
+        assertEquals(24f, viewModel.uiState.value.cabinTemperatureCelsius)
+    }
+
+    /** 온도만 실제 SDK인 PleosCabinControl처럼: 공조가 꺼져 있다가 준비 단계에서 켜진다. */
+    private class ClimateOffCabinControl(
+        private val delegate: CabinControl,
+        private val powerOnResult: SourceResult<Boolean> = SourceResult.Success(true),
+    ) : CabinControl by delegate {
+        override val simulatedFeatures = setOf(CabinFeature.MUSIC_VOLUME, CabinFeature.BACKREST)
+        override suspend fun prepareTemperatureControl() = powerOnResult
     }
 
     @Test
@@ -231,7 +271,7 @@ class EscortViewModelTest {
             cabinControl = cabin,
             tripSource = failingTrip,
             placeSearch = places,
-            sourcesAreSimulated = true,
+            tripIsSimulated = true,
         )
         runBlocking { withTimeout(TIMEOUT) { speech.listenerCount.first { it > 0 } } }
         speech.say("근처 카페 가자")

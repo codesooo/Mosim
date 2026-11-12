@@ -2,6 +2,7 @@ package com.example.mosim.data.mock
 
 import com.example.mosim.platform.pleos.CabinCapabilities
 import com.example.mosim.platform.pleos.CabinControl
+import com.example.mosim.platform.pleos.CabinFeature
 import com.example.mosim.platform.pleos.CabinState
 import com.example.mosim.platform.pleos.FailureReason
 import com.example.mosim.platform.pleos.SourceResult
@@ -33,6 +34,8 @@ class MockCabinControl(
     private val requestDelayMillis: Long = 100,
     private val applyDelayMillis: Long = 500,
 ) : CabinControl {
+
+    override val simulatedFeatures: Set<CabinFeature> = CabinFeature.entries.toSet()
 
     private val mutableState = MutableStateFlow(initialState)
     override val state: StateFlow<CabinState> = mutableState.asStateFlow()

@@ -2,6 +2,7 @@ package com.example.mosim.navigation
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
+import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavBackStackEntry
 import androidx.navigation.NavController
@@ -66,5 +67,6 @@ fun MosimNavHost() {
 @Composable
 private fun escortViewModel(navController: NavController, entry: NavBackStackEntry): EscortViewModel {
     val flowEntry = remember(entry) { navController.getBackStackEntry(MosimRoute.ESCORT_FLOW) }
-    return viewModel(viewModelStoreOwner = flowEntry) { EscortDependencies.createViewModel() }
+    val context = LocalContext.current
+    return viewModel(viewModelStoreOwner = flowEntry) { EscortDependencies.createViewModel(context) }
 }

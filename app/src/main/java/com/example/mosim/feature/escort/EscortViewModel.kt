@@ -12,6 +12,7 @@ import com.example.mosim.platform.pleos.CabinCapabilities
 import com.example.mosim.platform.pleos.CabinControl
 import com.example.mosim.platform.pleos.CabinState
 import com.example.mosim.platform.pleos.FailureReason
+import com.example.mosim.platform.pleos.CabinFeature
 import com.example.mosim.platform.pleos.GeoPoint
 import com.example.mosim.platform.pleos.RoadType
 import com.example.mosim.platform.pleos.SourceResult
@@ -48,7 +49,8 @@ class EscortViewModel(
     private val cabinControl: CabinControl,
     private val tripSource: TripSource,
     private val placeSearch: PlaceSearchSource,
-    private val sourcesAreSimulated: Boolean,
+    /** 경로·장소 쪽이 Mock인지. 실내 설정은 cabinControl.simulatedFeatures로 따로 본다. */
+    private val tripIsSimulated: Boolean,
     private val noticeDurationMillis: Long = NOTICE_DURATION_MILLIS,
     private val delayThresholdMinutes: Long = DELAY_THRESHOLD_MINUTES,
 ) : ViewModel(scope) {
@@ -119,12 +121,10 @@ class EscortViewModel(
 
     private suspend fun handleSpeech(text: String) {
         when (val command = VoiceCommandParser.parse(text)) {
-            is VoiceCommand.AdjustTemperature -> {
-                val current = mutableState.value.cabinTemperatureCelsius
-                if (current == null) skip("온도 조절", EscortMessages.UNKNOWN_VALUE)
-                else changeTemperature(current + command.deltaCelsius)
-            }
-            is VoiceCommand.SetTemperature -> changeTemperature(command.targetCelsius)
+            is VoiceCommand.AdjustTemperature ->
+                withCurrentTemperature { current -> changeTemperature(current, current + command.deltaCelsius) }
+            is VoiceCommand.SetTemperature ->
+                withCurrentTemperature { current -> changeTemperature(current, command.targetCelsius) }
             is VoiceCommand.AdjustVolume -> changeVolume(command.delta)
             is VoiceCommand.AdjustBackrest -> changeBackrest(command.deltaDegrees)
             is VoiceCommand.FindPlace -> proposePlace(command.kind, text)
@@ -132,9 +132,30 @@ class EscortViewModel(
         }
     }
 
-    private suspend fun changeTemperature(requested: Float) {
-        val current = mutableState.value.cabinTemperatureCelsius
+    /**
+     * 공조를 쓸 수 있게 준비한 뒤 현재 목표 온도를 넘긴다.
+     * 실제 차량은 공조가 꺼져 있으면 온도를 읽지 못해 먼저 켠다. 켰으면 그것도 실행 기록에 남긴다.
+     * 화면 상태(mutableState)가 아니라 cabinControl.state를 읽는 이유: 막 켠 뒤의 값이 화면 상태에는 아직 없을 수 있다.
+     */
+    private suspend fun withCurrentTemperature(change: suspend (Float) -> Unit) {
+        when (val prepared = cabinControl.prepareTemperatureControl()) {
+            is SourceResult.Failure -> return report(
+                "공조 켜기",
+                ActionOutcome.FAILED,
+                EscortMessages.failure(prepared.reason),
+                detail = "공조 켜기",
+                feature = CabinFeature.TEMPERATURE,
+            )
+            is SourceResult.Success -> if (prepared.value) {
+                record("공조 켜기", ActionOutcome.SUCCEEDED, CabinFeature.TEMPERATURE)
+            }
+        }
+        val current = cabinControl.state.value.targetTemperatureCelsius
             ?: return skip("온도 조절", EscortMessages.UNKNOWN_VALUE)
+        change(current)
+    }
+
+    private suspend fun changeTemperature(current: Float, requested: Float) {
         val capabilities = loadCapabilities("온도 조절") ?: return
         val vehicleRange = capabilities.temperatureRangeCelsius
             ?: return skip("온도 조절", EscortMessages.failure(FailureReason.NOT_SUPPORTED))
@@ -152,6 +173,7 @@ class EscortViewModel(
             target == current -> skip(description, EscortMessages.ALREADY_SET)
             else -> execute(
                 description = description,
+                feature = CabinFeature.TEMPERATURE,
                 successMessage = EscortMessages.temperatureChanged(current, target),
                 successDetail = EscortMessages.AUTO_ADJUST_DETAIL,
             ) { cabinControl.setTargetTemperature(target) }
@@ -168,7 +190,9 @@ class EscortViewModel(
         val description = "음량 $current → $target"
 
         if (target !in range) return skip(description, EscortMessages.OUT_OF_VEHICLE_RANGE)
-        execute(description, EscortMessages.volumeChanged(current, target)) { cabinControl.setMusicVolume(target) }
+        execute(description, CabinFeature.MUSIC_VOLUME, EscortMessages.volumeChanged(current, target)) {
+            cabinControl.setMusicVolume(target)
+        }
     }
 
     private suspend fun changeBackrest(deltaDegrees: Int) {
@@ -181,7 +205,7 @@ class EscortViewModel(
         val description = "등받이 $current° → $target°"
 
         if (target !in range) return skip(description, EscortMessages.OUT_OF_VEHICLE_RANGE)
-        execute(description, EscortMessages.backrestChanged(current, target)) {
+        execute(description, CabinFeature.BACKREST, EscortMessages.backrestChanged(current, target)) {
             cabinControl.setPassengerBackrestAngle(target)
         }
     }
@@ -189,15 +213,16 @@ class EscortViewModel(
     /** 실내 설정 요청 하나를 보내고 결과를 기록·안내한다. 실제 값은 cabinControl.state로 나중에 바뀐다. */
     private suspend fun execute(
         description: String,
+        feature: CabinFeature,
         successMessage: String,
         successDetail: String? = null,
         request: suspend () -> SourceResult<Unit>,
     ) {
         when (val result = request()) {
             is SourceResult.Success ->
-                report(description, ActionOutcome.SUCCEEDED, successMessage, successDetail)
+                report(description, ActionOutcome.SUCCEEDED, successMessage, successDetail, feature)
             is SourceResult.Failure ->
-                report(description, ActionOutcome.FAILED, EscortMessages.failure(result.reason), detail = description)
+                report(description, ActionOutcome.FAILED, EscortMessages.failure(result.reason), description, feature)
         }
     }
 
@@ -302,7 +327,7 @@ class EscortViewModel(
                     is SourceResult.Success -> ActionOutcome.SUCCEEDED
                     is SourceResult.Failure -> ActionOutcome.FAILED
                 }
-                record(description, outcome)
+                record(description, outcome, CabinFeature.MUSIC_VOLUME)
             }
         }
     }
@@ -382,6 +407,10 @@ class EscortViewModel(
         }
     }
 
+    /** 실내 설정은 기능별로, 나머지(경유지 등)는 경로 소스 기준으로 Mock 여부를 정한다. */
+    private fun isSimulated(feature: CabinFeature?): Boolean =
+        if (feature == null) tripIsSimulated else feature in cabinControl.simulatedFeatures
+
     private fun skip(description: String, reason: String) {
         report(description, ActionOutcome.SKIPPED, reason, detail = description)
     }
@@ -390,8 +419,14 @@ class EscortViewModel(
      * 기록과 안내를 한 번에 반영한다.
      * 따로 반영하면 "기록은 있는데 토스트는 없는" 중간 상태가 화면에 잠깐 보일 수 있다.
      */
-    private fun report(description: String, outcome: ActionOutcome, message: String, detail: String? = null) {
-        val entry = EscortActionRecord(description, outcome, isSimulated = sourcesAreSimulated)
+    private fun report(
+        description: String,
+        outcome: ActionOutcome,
+        message: String,
+        detail: String? = null,
+        feature: CabinFeature? = null,
+    ) {
+        val entry = EscortActionRecord(description, outcome, isSimulated = isSimulated(feature))
         val notice = newNotice(message, detail)
         mutableState.update { it.copy(history = it.history + entry, notice = notice) }
         scheduleNoticeHide(notice.id)
@@ -413,8 +448,8 @@ class EscortViewModel(
         }
     }
 
-    private fun record(description: String, outcome: ActionOutcome) {
-        val entry = EscortActionRecord(description, outcome, isSimulated = sourcesAreSimulated)
+    private fun record(description: String, outcome: ActionOutcome, feature: CabinFeature? = null) {
+        val entry = EscortActionRecord(description, outcome, isSimulated = isSimulated(feature))
         mutableState.update { it.copy(history = it.history + entry) }
     }
 

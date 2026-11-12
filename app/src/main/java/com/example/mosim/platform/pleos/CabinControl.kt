@@ -5,18 +5,27 @@ import kotlinx.coroutines.flow.StateFlow
 /**
  * 실내 설정(동승석 목표 온도, 음악 음량, 조수석 등받이) 경계다.
  *
- * 실제 구현은 아직 없다. 제어 API(setHvacTemperature, moveSeatBackrestAngle)는 Vehicle Control 🔜이라
- * 에뮬레이터 검증 전에는 호출 코드를 쓰지 않는다(sdk-status.md). 음량은 제어 방법 자체가 미정이다.
+ * 온도는 PleosCabinControl이 Vehicle SDK로 바꾼다(에뮬레이터 검증 됨, sdk-status.md 2026-11-12).
+ * 등받이는 에뮬레이터에서 이동을 확인하지 못했고, 음량은 제어 방법이 미정이라 둘 다 Mock이다.
  *
  * 실제 SDK처럼 "요청 성공"과 "실제 반영"을 나눈다. set*가 Success를 돌려줘도 값은 [state]로 나중에 바뀐다.
  */
 interface CabinControl {
+
+    /** Mock으로 처리하는 기능. 실행 기록에 "Mock 실행"을 기능별로 표시하는 데 쓴다(project-status.md 안전 규칙). */
+    val simulatedFeatures: Set<CabinFeature>
 
     /** 현재 실내 상태. 값을 모르면 각 필드가 null이다. */
     val state: StateFlow<CabinState>
 
     /** 조절 가능한 범위. Vehicle SDK의 check*Capabilities에 해당한다. */
     suspend fun capabilities(): SourceResult<CabinCapabilities>
+
+    /**
+     * 온도를 바꾸기 전에 부른다. 실제 차량은 공조가 꺼져 있으면 온도를 읽을 수 없어 켠다(팀 결정 2026-11-12).
+     * 공조를 새로 켰으면 Success(true). 켜야 할 것이 없는 구현(Mock)은 Success(false).
+     */
+    suspend fun prepareTemperatureControl(): SourceResult<Boolean> = SourceResult.Success(false)
 
     suspend fun setTargetTemperature(celsius: Float): SourceResult<Unit>
 
@@ -29,6 +38,8 @@ interface CabinControl {
      */
     suspend fun setPassengerBackrestAngle(degrees: Int): SourceResult<Unit>
 }
+
+enum class CabinFeature { TEMPERATURE, MUSIC_VOLUME, BACKREST }
 
 data class CabinState(
     val targetTemperatureCelsius: Float?,
