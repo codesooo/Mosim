@@ -22,14 +22,32 @@
 
 | 이름 | 상태 | 버전 | 의존성 | 권한 | 모심에서 쓰는 곳 | 에뮬레이터 검증 |
 |---|---|---|---|---|---|---|
-| Vehicle SDK – 조회(State) | ✅ | 2.3.2 | `Vehicle:2.3.2` | `CAR_*` (도메인별) | 착석·벨트·도어 감지, 배터리·연료, 실내 온도 조회 | 안 됨 |
-| Vehicle SDK – 제어(Control) | 🔜 | 2.3.2 (같은 라이브러리) | `Vehicle:2.3.2` | `CONTROL_CAR_*` | 공조 온도, 좌석 위치·등받이, 시트 열선·통풍 적용 | 안 됨 |
+| Vehicle SDK – 조회(State) | ✅ | 2.3.2 | `Vehicle:2.3.2` | `CAR_*` (도메인별) | 착석·벨트·도어 감지, 배터리·연료, 실내 온도 조회 | 일부 됨: 공조 목표 온도 조회 (2026-11-12, 아래 검증 기록) |
+| Vehicle SDK – 제어(Control) | 🔜 | 2.3.2 (같은 라이브러리) | `Vehicle:2.3.2` | `CONTROL_CAR_*` | 공조 온도, 좌석 위치·등받이, 시트 열선·통풍 적용 | 일부 됨: 공조 목표 온도 설정 됨. 좌석 등받이는 호출만 성공, 위치 변화 확인 불가 (2026-11-12, 아래 검증 기록) |
 | NaviHelper | ✅ | 3.0.5 | `NaviHelper:3.0.5` | `NAVI_ROUTE`, `NAVI_ROUTE_SEARCH`, `NAVI_CUSTOM_MAP` | 경로·ETA, 주유소·충전소 경유지, 도착 감지, 도착 예상 SOC | 안 됨 |
 | FusedLocation | 🔜 | 1.1.3 | `FusedLocation:1.1.3` | `FUSED_LOCATION` (**dangerous**) | 현재 위치, 픽업지 접근 감지(지오펜스) | 안 됨 |
 | TextToSpeech | 🔜 | 3.3.1 | `TextToSpeech:3.3.1` | `TTS_SERVICE` | 음성 안내 | 안 됨 |
 | SpeechToText | 🔜 | 3.3.1 | `SpeechToText:3.3.1` | `STT_SERVICE` | 동승자 음성 요청 | 안 됨 |
 | LLM SDK | ⛔ | — | — | — | 쓰지 않음 (2026-10-19 종료) | — |
 | Gleo Interface | ❓ | — | — | — | 포털이 AI 음성 연동용으로 안내. 내용 미확인 | — |
+
+### 에뮬레이터 검증 기록
+
+**2026-11-12 · Pleos Connect v2.1.0 arm64 에뮬레이터(API 34) · Vehicle 2.3.2**
+근거: `app/src/androidTest/.../platform/pleos/PleosVehicleControlVerificationTest.kt` (2/2 통과), Virtual Console(에뮬레이터 안 8088 포트) 화면 확인.
+
+- Maven 저장소는 인증 없이 받아진다.
+- 공조 목표 온도
+  - `checkHvacTemperatureCapabilities`: READ_WRITE, ROW_1_LEFT·ROW_1_RIGHT, **15.0~30.0℃** (Virtual Console 카드 설명의 16~30℃와 다르다)
+  - `setHvacTemperature(ROW_1_LEFT, 25.5)` → Virtual Console 운전석이 25.5℃로 바뀜. 이어서 24.5로 설정 후 `getHvacTemperature`가 24.5를 돌려줌
+  - **공조 전원이 꺼져 있으면 `getHvacTemperature`가 `PropertyNotAvailableException`으로 실패한다.** 설정은 전원과 상관없이 반영됐다
+  - `setHvacPower(true)`는 바로 응답하지만 `getHvacPowerState`가 true가 되기까지 3초 넘게 걸렸다
+  - 공조 전원 area는 하나다(1열 좌우 + 2열 전체 묶음)
+- 좌석 등받이
+  - `checkMoveSeatBackrestAngleCapabilities`: READ_WRITE, 1·2열 좌우 4곳
+  - `checkSeatBackrestAnglePositionCapabilities`: 위치 범위 **0~100** (각도가 아니다)
+  - `moveSeatBackrestAngle(ROW_1_RIGHT, FORWARD)` 3초 → `STOP`: 둘 다 성공 응답. 위치는 0 → 0으로 변화 없음
+  - Virtual Console에 좌석 위치 카드가 없다. 실제 이동은 에뮬레이터로 확인할 수 없다
 | AAOS `CarPropertyManager` | 🅰️ | — | Android Car API | AAOS 권한 `[확인 필요]` | 차속, 기어(정차 판단), 외기 온도 | 안 됨 |
 | AAOS `CarUxRestrictions` | 🅰️ | — | Android Car API | — | 주행/정차에 따른 화면 제한 | 안 됨 |
 | 장소 검색 API | 🌐 미선정 | — | — | — | "근처 카페" 같은 요청 | — |
