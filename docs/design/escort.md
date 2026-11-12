@@ -67,7 +67,10 @@ platform/pleos/
   SourceResult.kt            호출 결과(Success / Failure + FailureReason). SDK onFailed를 값으로 바꾼다
   GeoPoint.kt                좌표 (latitude, longitude)
   SpeechInput.kt             STT 경계
-  CabinControl.kt            실내 설정 경계 (Vehicle Control 🔜)
+  CabinControl.kt            실내 설정 경계. simulatedFeatures로 기능별 Mock 여부를 알린다
+  ClimateZone.kt             좌석·공조 구역 모델, 착석 기준 구역 선택 규칙(ClimateZoneRule)
+  ClimateApi.kt              공조·착석 SDK 호출 경계 (실제: PleosClimateApi)
+  PleosCabinControl.kt       온도만 Vehicle SDK, 음량·등받이는 Mock에 맡김
   TripSource.kt              ETA·남은 거리·현재 위치·경유지 경계 (NaviHelper ✅)
 data/
   place/PlaceSearch.kt       PlaceKind, PlaceCandidate, PlaceSearchSource
@@ -87,6 +90,15 @@ ui/components/
   권한 없음, 미지원, 잘못된 요청(범위 밖·경유지 초과), 주행 중 제한, 연결 실패, 네트워크, 기타.
 - set 요청의 Success는 "요청이 받아들여짐"이다. 실제 값은 `StateFlow`로 나중에 바뀐다(실제 SDK와 같게).
 - `CabinControl.setPassengerBackrestAngle`은 목표 각도를 받는다. 실제 SDK의 방향 이동 방식은 구현체가 감춘다.
+
+### 공조 실제 연동 규칙 (팀 결정 2026-11-12)
+
+- Pleos 차량 서비스가 있는 기기(Pleos 에뮬레이터·실차)에서는 온도를 Vehicle SDK로 바꾼다. 없으면 전부 Mock이다(`EscortDependencies`).
+- 바꿀 구역: 착석 감지로 사람이 앉은 좌석 중 운전석을 뺀 좌석을 덮는 구역. 그 좌석을 덮는 구역이 없으면(뒷좌석 구역이 없는 차) 동승석 구역, 착석을 모르면 동승석 구역.
+  `[확인 필요]` 운전석이 ROW_1_LEFT(좌핸들)인지.
+- 공조가 꺼져 있으면 온도 조회가 실패한다. 동승자가 온도를 요청하면 공조를 켜고(최대 15초 대기) 설정하며, "공조 켜기"도 실행 기록에 남긴다.
+- 실행 기록의 Mock 표시는 기능별이다. 온도는 실제, 음량·등받이는 Mock으로 표시된다.
+- 화면의 실내 온도는 5초마다 다시 읽는다. `[확인 필요]` Virtual Console·차량 공조 바에서 바꾼 값이 앱에 오는지는 확인하지 못했다(콘솔 버튼이 반응하지 않음).
 - Mock은 생성자로 실패 사유와 지연을 바꿀 수 있다. `MockTripSource.simulateTrafficDelay()`는 지연 감지 시연용 Mock 전용 조작이다.
 - Mock 범위 `[확인 필요]`: 음량 0~10, 등받이 90~135°. 온도는 Virtual Console 기준 16~30°C, 0.5°C 단위.
 - 장소 검색 결과가 없으면 실패가 아니라 빈 목록이다. 경유 시 늘어나는 시간은 장소 API가 주지 않는다 `[확인 필요]`.
