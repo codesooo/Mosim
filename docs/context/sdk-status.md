@@ -24,7 +24,7 @@
 |---|---|---|---|---|---|---|
 | Vehicle SDK – 조회(State) | ✅ | 2.3.2 | `Vehicle:2.3.2` | `CAR_*` (도메인별) | 착석·벨트·도어 감지, 배터리·연료, 실내 온도 조회 | 일부 됨: 공조 목표 온도 조회 (2026-11-12, 아래 검증 기록) |
 | Vehicle SDK – 제어(Control) | 🔜 | 2.3.2 (같은 라이브러리) | `Vehicle:2.3.2` | `CONTROL_CAR_*` | 공조 온도, 좌석 위치·등받이, 시트 열선·통풍 적용 | 일부 됨: 공조 목표 온도 설정 됨. 좌석 등받이는 호출만 성공, 위치 변화 확인 불가 (2026-11-12, 아래 검증 기록) |
-| NaviHelper | ✅ | 3.0.5 | `NaviHelper:3.0.5` | `NAVI_ROUTE`, `NAVI_ROUTE_SEARCH`, `NAVI_CUSTOM_MAP` | 경로·ETA, 주유소·충전소 경유지, 도착 감지, 도착 예상 SOC | 안 됨 |
+| NaviHelper | ✅ | 3.0.5 | `NaviHelper:3.0.5` | `NAVI_ROUTE`, `NAVI_ROUTE_SEARCH`, `NAVI_CUSTOM_MAP` | 경로·ETA, 주유소·충전소 경유지, 도착 감지, 도착 예상 SOC | 됨: 경로 요청, 남은 거리·시간, 현재 위치, 경유지 추가 (2026-11-12, 아래 검증 기록) |
 | FusedLocation | 🔜 | 1.1.3 | `FusedLocation:1.1.3` | `FUSED_LOCATION` (**dangerous**) | 현재 위치, 픽업지 접근 감지(지오펜스) | 안 됨 |
 | TextToSpeech | 🔜 | 3.3.1 | `TextToSpeech:3.3.1` | `TTS_SERVICE` | 음성 안내 | 안 됨 |
 | SpeechToText | 🔜 | 3.3.1 | `SpeechToText:3.3.1` | `STT_SERVICE` | 동승자 음성 요청 | 안 됨 |
@@ -51,6 +51,20 @@
   - 추가 확인: Emulation Controls 48개 항목에도 좌석 위치·등받이 항목이 없다(좌석은 Seat Temperature, Seat Occupancy만)
   - 추가 확인: FORWARD·BACKWARD를 각 10초 움직여도 위치 0. `registerSeatBackrestAnglePosition` 구독은 처음 0 한 번만 오고 이동 중 갱신 없음
   - `checkSeatMemoryCapabilities`: 운전석(ROW_1_LEFT)만, WRITE, 슬롯 1~2. 동승석 등받이를 메모리로 맞추는 방법은 없다
+
+**2026-11-12 · Pleos Connect v2.1.0 arm64 에뮬레이터(API 34) · NaviHelper 3.0.5**
+근거: `PleosNaviHelperVerificationTest`, `PleosTripSourceDeviceTest` (통과), 내비 화면 확인.
+
+- `initialize(onConnected, onFailed)`: onConnected가 온다
+- `getCurrentLocationInfo` → 37.4127212, 127.094681 ("수정구 시흥동", 에뮬레이터 기본 위치)
+- `requestRoute`: `onRouteStarted(duration=3780, distance=23000)`가 온다. **`onRoutingCompleted`는 30초 기다려도 오지 않았다**
+  - 요청하면 **Pleos 내비 화면이 앞으로 나온다**
+- 단위: `DestinationInfo.remainDistance`는 m, `remainTime`은 초. `TripInfo.eta`도 **시각이 아니라 남은 초**(3939)였다
+- 경로가 없을 때 `onDestinationInfo`는 이름이 비고 remainDistance=0인 값을 준다
+- `addWaypoint(FIRST)` → `onWaypointChanged(index=FIRST, cmdType=ADD)`. 남은 시간 3780 → 5640초
+- `onWayPointInfo`: 이름·남은 거리는 오지만 **좌표는 0.0**으로 온다
+- **`requestTrip`을 부른 직후 `onRouteCancelled`가 와서 안내 중이던 경로가 취소됐다.** 원인 미확인 `[확인 필요]`. 안내 중에는 쓰지 않는다
+- `onCurrentRoadSpeedLimit`은 정차 중 0만 왔다
 | AAOS `CarPropertyManager` | 🅰️ | — | Android Car API | AAOS 권한 `[확인 필요]` | 차속, 기어(정차 판단), 외기 온도 | 안 됨 |
 | AAOS `CarUxRestrictions` | 🅰️ | — | Android Car API | — | 주행/정차에 따른 화면 제한 | 안 됨 |
 | 장소 검색 API | 🌐 미선정 | — | — | — | "근처 카페" 같은 요청 | — |
