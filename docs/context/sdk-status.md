@@ -48,6 +48,9 @@
   - `checkSeatBackrestAnglePositionCapabilities`: 위치 범위 **0~100** (각도가 아니다)
   - `moveSeatBackrestAngle(ROW_1_RIGHT, FORWARD)` 3초 → `STOP`: 둘 다 성공 응답. 위치는 0 → 0으로 변화 없음
   - Virtual Console에 좌석 위치 카드가 없다. 실제 이동은 에뮬레이터로 확인할 수 없다
+  - 추가 확인: Emulation Controls 48개 항목에도 좌석 위치·등받이 항목이 없다(좌석은 Seat Temperature, Seat Occupancy만)
+  - 추가 확인: FORWARD·BACKWARD를 각 10초 움직여도 위치 0. `registerSeatBackrestAnglePosition` 구독은 처음 0 한 번만 오고 이동 중 갱신 없음
+  - `checkSeatMemoryCapabilities`: 운전석(ROW_1_LEFT)만, WRITE, 슬롯 1~2. 동승석 등받이를 메모리로 맞추는 방법은 없다
 | AAOS `CarPropertyManager` | 🅰️ | — | Android Car API | AAOS 권한 `[확인 필요]` | 차속, 기어(정차 판단), 외기 온도 | 안 됨 |
 | AAOS `CarUxRestrictions` | 🅰️ | — | Android Car API | — | 주행/정차에 따른 화면 제한 | 안 됨 |
 | 장소 검색 API | 🌐 미선정 | — | — | — | "근처 카페" 같은 요청 | — |
