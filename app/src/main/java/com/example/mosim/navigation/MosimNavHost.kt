@@ -28,6 +28,7 @@ fun MosimNavHost() {
             PassengerSelectScreen(
                 onBack = { navController.popBackStack() },
                 onAddPassenger = { navController.navigate(MosimRoute.PASSENGER_REGISTER) },
+                onMoveSettings = { id -> navController.navigate("${MosimRoute.ROUTE}?passengerId=$id") },
                 registeredPassengerId = registeredId,
             )
         }
@@ -42,8 +43,19 @@ fun MosimNavHost() {
                 },
             )
         }
-        composable(MosimRoute.ROUTE) {
-            RouteRecommendScreen(onBack = { navController.popBackStack() })
+        composable(
+            "${MosimRoute.ROUTE}?passengerId={passengerId}",
+            arguments = listOf(androidx.navigation.navArgument("passengerId") {
+                type = androidx.navigation.NavType.StringType
+                nullable = true
+                defaultValue = null
+            }),
+        ) { entry ->
+            val passenger = MockPassengerProfiles.passengers.find { it.id == entry.arguments?.getString("passengerId") }
+            RouteRecommendScreen(
+                onBack = { navController.popBackStack() },
+                subtitle = passenger?.let { "${it.name} · ${it.personalization}" },
+            )
         }
         composable(MosimRoute.VEHICLE) {
             VehicleStatusScreen(onBack = { navController.popBackStack() })
