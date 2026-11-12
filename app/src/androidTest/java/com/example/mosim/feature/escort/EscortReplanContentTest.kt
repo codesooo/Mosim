@@ -1,11 +1,15 @@
 package com.example.mosim.feature.escort
 
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.size
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.unit.dp
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.example.mosim.data.place.PlaceCandidate
 import com.example.mosim.platform.pleos.GeoPoint
@@ -78,5 +82,21 @@ class EscortReplanContentTest {
 
         composeRule.onNodeWithText("“카페 들렀다 가자”").assertIsDisplayed()
         composeRule.onNodeWithText("경로에 경유지를 추가하지 못했어요").assertIsDisplayed()
+    }
+
+    /** 분할 반쪽 창(840×1184dp)에서 지도가 남은 높이만 써서, 판단 문장과 두 버튼이 화면 안에 남아야 한다. */
+    @Test
+    fun 좁은_창에서도_제안_문장과_두_버튼이_보인다() {
+        composeRule.setContent {
+            MosimTheme {
+                Box(modifier = Modifier.size(width = 840.dp, height = 1184.dp)) {
+                    EscortReplanContent(proposal = delayProposal)
+                }
+            }
+        }
+
+        composeRule.onNodeWithText(delayProposal.message).assertIsDisplayed()
+        composeRule.onNodeWithText(EscortMessages.KEEP_CURRENT_ROUTE).assertIsDisplayed()
+        composeRule.onNodeWithText(EscortMessages.addWaypointButton("휴식 장소 A")).assertIsDisplayed()
     }
 }

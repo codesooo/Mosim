@@ -25,4 +25,11 @@ class MapCameraTest {
 
         assertEquals(MapCamera.Fit(listOf(here, place)), MapCamera.of(markers))
     }
+
+    @Test
+    fun `맞춤 여백은 지도의 짧은 변의 4분의 1이다`() {
+        // 넓은 창 지도(가로 844, 세로 900)와 좁은 창 지도(가로 744, 세로 250)
+        assertEquals(211, MapCamera.fitPaddingPx(widthPx = 844, heightPx = 900))
+        assertEquals(62, MapCamera.fitPaddingPx(widthPx = 744, heightPx = 250))
+    }
 }

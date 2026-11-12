@@ -2,6 +2,7 @@ package com.example.mosim.feature.escort
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -69,6 +70,7 @@ fun EscortReplanScreen(
     )
 }
 
+/** E-1과 같은 기준(EscortLayout)으로 배치를 고른다. 좁은 창에서는 카드 → 지도 → 버튼을 한 열로 쌓는다. */
 @Composable
 fun EscortReplanContent(
     proposal: ReplanProposal,
@@ -76,47 +78,94 @@ fun EscortReplanContent(
     onAddWaypoint: () -> Unit = {},
 ) {
     MosimAppContainer(title = "이동 계획 수정", onBack = onKeepRoute) {
-        Row(
-            modifier = Modifier.fillMaxSize(),
-            horizontalArrangement = Arrangement.spacedBy(MosimDimens.CardGap),
-        ) {
-            Column(
-                modifier = Modifier
-                    .weight(LEFT_WEIGHT)
-                    .fillMaxHeight(),
-                verticalArrangement = Arrangement.spacedBy(MosimDimens.CardGap),
-            ) {
-                when (val reason = proposal.reason) {
-                    is ReplanReason.Delay -> DelayComparisonCard(reason)
-                    is ReplanReason.VoiceRequest -> SpokenRequestCard(reason.spokenText)
-                }
-                SuggestionCard(proposal = proposal, modifier = Modifier.fillMaxWidth())
-                Spacer(modifier = Modifier.weight(1f))
-                Row(horizontalArrangement = Arrangement.spacedBy(MosimDimens.CardGap)) {
-                    PleosButton(
-                        text = EscortMessages.KEEP_CURRENT_ROUTE,
-                        onClick = onKeepRoute,
-                        enabled = !proposal.isSubmitting,
-                        modifier = Modifier.weight(1f),
-                    )
-                    PleosButton(
-                        text = EscortMessages.addWaypointButton(proposal.place.name),
-                        onClick = onAddWaypoint,
-                        type = PleosButtonType.Filled,
-                        enabled = proposal.canAddWaypoint,
-                        modifier = Modifier.weight(1f),
-                    )
-                }
+        BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
+            when (EscortLayout.of(maxWidth.value)) {
+                EscortLayout.WIDE -> WideReplanContent(proposal, onKeepRoute, onAddWaypoint)
+                EscortLayout.COMPACT -> CompactReplanContent(proposal, onKeepRoute, onAddWaypoint)
             }
-            MosimMap(
-                markers = mapMarkers(proposal),
-                placeholderText = mapCaption(proposal.reason),
-                modifier = Modifier
-                    .weight(RIGHT_WEIGHT)
-                    .fillMaxHeight(),
-            )
         }
     }
+}
+
+@Composable
+private fun WideReplanContent(proposal: ReplanProposal, onKeepRoute: () -> Unit, onAddWaypoint: () -> Unit) {
+    Row(
+        modifier = Modifier.fillMaxSize(),
+        horizontalArrangement = Arrangement.spacedBy(MosimDimens.CardGap),
+    ) {
+        Column(
+            modifier = Modifier
+                .weight(LEFT_WEIGHT)
+                .fillMaxHeight(),
+            verticalArrangement = Arrangement.spacedBy(MosimDimens.CardGap),
+        ) {
+            ReasonCard(proposal.reason)
+            SuggestionCard(proposal = proposal, modifier = Modifier.fillMaxWidth())
+            Spacer(modifier = Modifier.weight(1f))
+            ReplanButtons(proposal, onKeepRoute, onAddWaypoint)
+        }
+        ProposalMap(
+            proposal = proposal,
+            modifier = Modifier
+                .weight(RIGHT_WEIGHT)
+                .fillMaxHeight(),
+        )
+    }
+}
+
+/** 지도는 남는 높이만 쓴다. 판단에 필요한 문장과 버튼이 먼저 보여야 해서다. */
+@Composable
+private fun CompactReplanContent(proposal: ReplanProposal, onKeepRoute: () -> Unit, onAddWaypoint: () -> Unit) {
+    Column(
+        modifier = Modifier.fillMaxSize(),
+        verticalArrangement = Arrangement.spacedBy(MosimDimens.CardGap),
+    ) {
+        ReasonCard(proposal.reason)
+        SuggestionCard(proposal = proposal, modifier = Modifier.fillMaxWidth())
+        ProposalMap(
+            proposal = proposal,
+            modifier = Modifier
+                .weight(1f)
+                .fillMaxWidth(),
+        )
+        ReplanButtons(proposal, onKeepRoute, onAddWaypoint)
+    }
+}
+
+@Composable
+private fun ReasonCard(reason: ReplanReason) {
+    when (reason) {
+        is ReplanReason.Delay -> DelayComparisonCard(reason)
+        is ReplanReason.VoiceRequest -> SpokenRequestCard(reason.spokenText)
+    }
+}
+
+@Composable
+private fun ReplanButtons(proposal: ReplanProposal, onKeepRoute: () -> Unit, onAddWaypoint: () -> Unit) {
+    Row(horizontalArrangement = Arrangement.spacedBy(MosimDimens.CardGap)) {
+        PleosButton(
+            text = EscortMessages.KEEP_CURRENT_ROUTE,
+            onClick = onKeepRoute,
+            enabled = !proposal.isSubmitting,
+            modifier = Modifier.weight(1f),
+        )
+        PleosButton(
+            text = EscortMessages.addWaypointButton(proposal.place.name),
+            onClick = onAddWaypoint,
+            type = PleosButtonType.Filled,
+            enabled = proposal.canAddWaypoint,
+            modifier = Modifier.weight(1f),
+        )
+    }
+}
+
+@Composable
+private fun ProposalMap(proposal: ReplanProposal, modifier: Modifier) {
+    MosimMap(
+        markers = mapMarkers(proposal),
+        placeholderText = mapCaption(proposal.reason),
+        modifier = modifier,
+    )
 }
 
 /** 위 주황 비교 카드 "예상 소요 ~~30분~~ → 60분 / 도착 ~~09:12~~ → 09:42" */
@@ -280,4 +329,10 @@ private fun EscortReplanVoicePreview() {
             ),
         )
     }
+}
+
+@Preview(name = "F-1 좁은 창 (내비와 분할)", widthDp = 840, heightDp = 1184)
+@Composable
+private fun EscortReplanCompactPreview() {
+    MosimTheme { EscortReplanContent(proposal = previewProposal) }
 }
