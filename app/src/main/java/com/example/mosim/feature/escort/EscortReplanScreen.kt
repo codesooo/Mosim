@@ -25,7 +25,9 @@ import com.example.mosim.platform.pleos.GeoPoint
 import com.example.mosim.platform.pleos.TripSource
 import com.example.mosim.ui.components.ChipTone
 import com.example.mosim.ui.components.InfoCard
-import com.example.mosim.ui.components.MapPlaceholder
+import com.example.mosim.ui.components.MapMarker
+import com.example.mosim.ui.components.MapMarkerKind
+import com.example.mosim.ui.components.MosimMap
 import com.example.mosim.ui.components.MosimAppContainer
 import com.example.mosim.ui.components.MosimStatus
 import com.example.mosim.ui.components.StatusChip
@@ -106,8 +108,9 @@ fun EscortReplanContent(
                     )
                 }
             }
-            MapPlaceholder(
-                text = mapCaption(proposal.reason),
+            MosimMap(
+                markers = mapMarkers(proposal),
+                placeholderText = mapCaption(proposal.reason),
                 modifier = Modifier
                     .weight(RIGHT_WEIGHT)
                     .fillMaxHeight(),
@@ -222,6 +225,12 @@ private fun PlaceBox(proposal: ReplanProposal) {
     }
 }
 
+private fun mapMarkers(proposal: ReplanProposal): List<MapMarker> = listOfNotNull(
+    proposal.searchOrigin?.let { MapMarker(it, MapMarkerKind.CURRENT_LOCATION) },
+    MapMarker(proposal.place.location, MapMarkerKind.PLACE),
+)
+
+/** 지도 키가 없을 때 MapPlaceholder에 보여 줄 설명. [확인 필요] 정체 구간 표시는 NaviHelper 연동 후 */
 private fun mapCaption(reason: ReplanReason): String = when (reason) {
     is ReplanReason.Delay -> "지도 · 정체 구간 + 휴식 장소"
     is ReplanReason.VoiceRequest -> "지도 · 현재 위치 + 제안 장소"

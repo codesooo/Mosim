@@ -1,10 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
-    <!-- 카카오 로컬 REST 장소 검색 -->
+    <!-- 카카오 로컬 REST 장소 검색, 카카오맵 SDK -->
     <uses-permission android:name="android.permission.INTERNET" />
 
     <application
+        android:name=".MosimApplication"
         android:allowBackup="true"
         android:dataExtractionRules="@xml/data_extraction_rules"
         android:fullBackupContent="@xml/backup_rules"

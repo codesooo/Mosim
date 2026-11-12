@@ -1,6 +1,7 @@
 package com.example.mosim.feature.escort
 
 import com.example.mosim.data.place.PlaceCandidate
+import com.example.mosim.platform.pleos.GeoPoint
 import java.time.LocalTime
 
 /**
@@ -40,6 +41,8 @@ data class ReplanProposal(
     val place: PlaceCandidate,
     val freeWaypointSlots: Int,
     val bundledActions: List<CabinAction>,
+    /** 장소를 찾을 때 기준으로 쓴 현재 위치. F-1 지도에 함께 찍는다. 모르면 null. */
+    val searchOrigin: GeoPoint? = null,
     /** 경유 요청을 보내는 중. 버튼을 막는다. */
     val isSubmitting: Boolean = false,
     /** 경유 요청 실패 안내. F-1에 보여 준다. */

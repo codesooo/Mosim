@@ -285,6 +285,7 @@ class EscortViewModelTest {
             proposal.reason,
         )
         assertEquals("휴식 장소 A", proposal.place.name)
+        assertEquals(MockTripSource.DEFAULT_LOCATION, proposal.searchOrigin)
         assertEquals(listOf(CabinAction.SetMusicVolume(from = 4, to = 3)), proposal.bundledActions)
         assertTrue(proposal.message.startsWith("엄마는"))
     }

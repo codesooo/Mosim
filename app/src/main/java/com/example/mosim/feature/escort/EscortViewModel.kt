@@ -67,6 +67,9 @@ class EscortViewModel(
     /** 마지막으로 받은 도로 종류. 휴식 장소 기준이 달라진다. */
     private var roadType: RoadType? = null
 
+    /** 마지막 장소 검색에 쓴 위치. 제안에 붙여 F-1 지도에 현재 위치로 찍는다. */
+    private var lastSearchOrigin: GeoPoint? = null
+
     init {
         viewModelScope.launch { cabinControl.state.collect(::applyCabinState) }
         viewModelScope.launch { tripSource.tripStatus.collect(::onTripStatus) }
@@ -225,6 +228,7 @@ class EscortViewModel(
                 place = place,
                 freeWaypointSlots = freeWaypointSlots(),
                 bundledActions = emptyList(),
+                searchOrigin = lastSearchOrigin,
             ),
         )
     }
@@ -278,6 +282,7 @@ class EscortViewModel(
                 place = place,
                 freeWaypointSlots = freeWaypointSlots(),
                 bundledActions = restBundledActions(),
+                searchOrigin = lastSearchOrigin,
             ),
         )
     }
@@ -334,7 +339,7 @@ class EscortViewModel(
     }
 
     private suspend fun currentLocationOrNotice(): GeoPoint? = when (val result = tripSource.currentLocation()) {
-        is SourceResult.Success -> result.value
+        is SourceResult.Success -> result.value.also { lastSearchOrigin = it }
         is SourceResult.Failure -> {
             showNotice(EscortMessages.LOCATION_UNAVAILABLE)
             null
