@@ -7,6 +7,7 @@ package com.example.mosim.navigation
 object MosimRoute {
     const val HOME = "home"
     const val PASSENGER = "passenger"
+    const val PASSENGER_REGISTER = "passenger/register"
     const val ROUTE = "route"
     const val VEHICLE = "vehicle"
     const val PICKUP = "pickup"
