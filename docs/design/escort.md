@@ -174,16 +174,35 @@ data class ReplanProposal(
 - 제안에 답하면(승인·거절) 그때 도착 시각을 새 기준으로 잡는다. 같은 지연을 두 번 묻지 않기 위해서다.
 - 휴식 제안 문구는 "경로상" 대신 "가까운"을 쓴다. 반경 검색이라 경로 위인지 보장하지 못한다.
 
+### 휴식 장소 기준 (`RestPlaceRule`, 팀 결정 2026-11-12)
+
+| 도로 | 찾는 곳 | 반경 |
+|---|---|---|
+| 고속도로 | 휴게소만 | 20km (카카오 최대값) |
+| 국도 | 휴게소 → 공원 → 카페 순, 반경 안에 있는 첫 종류의 가장 가까운 곳 | 2km |
+| 모름 | 국도 규칙 | 2km |
+
+- 음성 "쉬었다 가자"(`FindPlace(REST_AREA)`)도 같은 기준을 쓴다.
+- 우선순위를 둔 이유: 도심·국도에서는 카페가 거의 항상 가장 가까워 거리만 보면 늘 카페가 된다.
+- `[확인 필요]` 도로 종류(`TripStatus.roadType`)를 NaviHelper에서 직접 주지 않는다. 후보 신호는 `TurnType.TURN_RESTAREA`·`TURN_ENTER_SERVICEAREA`, `onCurrentRoadSpeedLimit`, `TrafficCongestionInfo.roadName`. 지금은 Mock에서 null(모름)이다.
+- `[확인 필요]` 고속도로 반경 검색은 진행 방향 반대편이나 지나온 휴게소도 돌려준다(예: "안성휴게소 부산방향/서울방향").
+
 ## 8. 카카오 연동 확인 목록
 
-구현 전에 카카오 공식 문서로 확인한다. 확인 전에는 코드에 쓰지 않는다.
+카카오 개발자 문서 "카카오맵 REST API"로 확인했다(2026-11-12).
 
-- [ ] 로컬 API: 키워드 / 카테고리 검색 엔드포인트, 반경·좌표 파라미터, 카테고리 코드
-- [ ] 키 두 종류(REST API 키, 네이티브 앱 키)를 `local.properties` → `BuildConfig`로 읽기. `buildFeatures.buildConfig = true` 필요
-- [ ] 반경 검색은 "현재 위치 기준"이다. 디자인 문구 "경로상"과 맞는지
-- [ ] 지도 SDK: Maven 저장소, 버전, AGP 8.13 / compileSdk 36 호환, Automotive arm64 에뮬레이터 동작
-- [ ] 카카오 콘솔에 패키지명과 키 해시 등록 (패키지명 `com.example.mosim`은 임시)
-- [ ] 매니페스트 `INTERNET` 권한
+- [x] 로컬 API: `GET https://dapi.kakao.com/v2/local/search/{category|keyword}.json`, 헤더 `Authorization: KakaoAK {REST API 키}`.
+  `x`=경도, `y`=위도, `radius` 0~20000m, `size` 1~15, `sort=distance`는 x·y 필요. 응답 값은 전부 문자열이고 `distance`는 x·y를 보낼 때만 채워진다.
+- [x] 종류 대응: 카페 `CE7`, 편의점 `CS2`는 카테고리 검색. 충전소("전기차충전소"), 화장실("공중화장실"), 휴게소("휴게소"), 공원("공원")은 키워드 검색이고, 분류에 기대한 단어가 없는 결과는 뺀다.
+  `OL7`은 주유소가 섞여 쓰지 않는다. `[확인 필요]` 도심 2km 안에서 "휴게소" 결과가 나오는지, 휴식 장소를 무엇으로 볼지.
+- [x] REST 키는 `local.properties`의 `KAKAO_REST_API_KEY` → `BuildConfig`. 키가 없으면 Mock 장소 검색을 쓴다(`EscortDependencies`).
+- [x] 실패 대응: 401·403 → `PERMISSION_DENIED`, 400(인자 오류, 쿼터 -10) → `INVALID_REQUEST`, 429(무료 제공량 소진) → `UNKNOWN`, 5xx → `CONNECTION_FAILED`, 연결 오류 → `NETWORK`.
+- [x] 매니페스트 `INTERNET` 권한.
+- [ ] `[확인 필요]` 2026-07-21부터 카카오맵 API 무료 쿼터 방식이 바뀌었다. 무료 제공량은 계정에서 처음 활성화한 앱에만 준다. 팀 계정과 앱을 정해야 한다.
+- [ ] 반경 검색은 "현재 위치 기준"이다. 디자인 문구 "경로상"과 맞지 않아 "가까운"으로 썼다.
+- [ ] 지도 SDK: Maven 저장소, 버전, AGP 8.13 / compileSdk 36 호환, Automotive arm64 에뮬레이터 동작 (7단계, 팀 승인 후)
+- [ ] 카카오 콘솔에 패키지명과 키 해시 등록 (지도 SDK용 네이티브 앱 키. 패키지명 `com.example.mosim`은 임시)
+- 응답 파싱 단위 테스트를 위해 `testImplementation(org.json:json)`을 추가했다. 앱은 안드로이드 내장 org.json을 쓴다. `[확인 필요]` 팀 공유.
 
 ## 9. 테스트
 
