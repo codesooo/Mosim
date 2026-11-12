@@ -11,6 +11,7 @@ import androidx.navigation.compose.rememberNavController
 import com.example.mosim.feature.home.HomeScreen
 import com.example.mosim.feature.passenger.PassengerSelectScreen
 import com.example.mosim.feature.pickup.PickupGuideScreen
+import com.example.mosim.feature.route.PlaceSearchScreen
 import com.example.mosim.feature.route.RouteRecommendScreen
 import com.example.mosim.feature.vehicle.VehicleStatusScreen
 
@@ -52,9 +53,26 @@ fun MosimNavHost() {
             }),
         ) { entry ->
             val passenger = MockPassengerProfiles.passengers.find { it.id == entry.arguments?.getString("passengerId") }
+            val pickup by entry.savedStateHandle.getStateFlow("pickup", "강남역 2번 출구").collectAsState()
+            val destination by entry.savedStateHandle.getStateFlow("destination", "서울대병원 본관").collectAsState()
             RouteRecommendScreen(
+                pickup = pickup,
+                destination = destination,
+                onEditPickup = { navController.navigate("${MosimRoute.PLACE_SEARCH}/pickup") },
+                onEditDestination = { navController.navigate("${MosimRoute.PLACE_SEARCH}/destination") },
                 onBack = { navController.popBackStack() },
                 subtitle = passenger?.let { "${it.name} · ${it.personalization}" },
+            )
+        }
+        composable("${MosimRoute.PLACE_SEARCH}/{field}") { entry ->
+            val field = requireNotNull(entry.arguments?.getString("field"))
+            PlaceSearchScreen(
+                isPickup = field == "pickup",
+                onBack = { navController.popBackStack() },
+                onSelect = { name ->
+                    navController.previousBackStackEntry?.savedStateHandle?.set(field, name)
+                    navController.popBackStack()
+                },
             )
         }
         composable(MosimRoute.VEHICLE) {
