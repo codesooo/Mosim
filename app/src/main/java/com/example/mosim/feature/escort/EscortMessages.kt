@@ -120,6 +120,7 @@ object EscortMessages {
         PlaceKind.RESTROOM -> "화장실"
         PlaceKind.CONVENIENCE_STORE -> "편의점"
         PlaceKind.REST_AREA -> "휴식 장소"
+        PlaceKind.PARK -> "공원"
         PlaceKind.EV_CHARGER -> "충전소"
     }
 

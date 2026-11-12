@@ -36,4 +36,13 @@ data class TripStatus(
     val remainDistanceMeters: Int?,
     val remainMinutes: Int?,
     val waypointCount: Int,
+    /** 모르면 null이다. 휴식 장소 기준(RestPlaceRule)이 달라진다. */
+    val roadType: RoadType? = null,
 )
+
+/**
+ * 지금 달리는 도로 종류.
+ * [확인 필요] NaviHelper에 도로 종류 필드가 없다. 후보 신호: TBTInfo의 TurnType.TURN_RESTAREA /
+ * TURN_ENTER_SERVICEAREA, onCurrentRoadSpeedLimit, TrafficCongestionInfo.roadName. 실제 구현 때 정한다.
+ */
+enum class RoadType { HIGHWAY, LOCAL }

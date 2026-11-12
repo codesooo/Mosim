@@ -9,6 +9,7 @@ enum class PlaceKind {
     RESTROOM,
     CONVENIENCE_STORE,
     REST_AREA,
+    PARK,
     EV_CHARGER,
 }
 

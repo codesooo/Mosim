@@ -9,6 +9,9 @@ import com.example.mosim.platform.pleos.FailureReason
 import com.example.mosim.platform.pleos.GeoPoint
 import com.example.mosim.platform.pleos.SourceResult
 import com.example.mosim.platform.pleos.TripSource
+import com.example.mosim.data.place.PlaceCandidate
+import com.example.mosim.data.place.PlaceKind
+import com.example.mosim.platform.pleos.RoadType
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.asCoroutineDispatcher
@@ -284,6 +287,63 @@ class EscortViewModelTest {
         assertEquals("휴식 장소 A", proposal.place.name)
         assertEquals(listOf(CabinAction.SetMusicVolume(from = 4, to = 3)), proposal.bundledActions)
         assertTrue(proposal.message.startsWith("엄마는"))
+    }
+
+    // 국도 반경(2km) 밖, 고속도로 반경(20km) 안에 휴게소 하나만 있는 Mock
+    private val farRestAreaPlaces = MockPlaceSearchSource.DEFAULT_PLACES + (
+        PlaceKind.REST_AREA to listOf(
+            PlaceCandidate("far-rest", "먼 휴게소", "고속도로휴게소", null, GeoPoint(37.45, 127.1), 15_000),
+        )
+    )
+
+    @Test
+    fun `국도에서 반경 안에 휴게소가 없으면 공원을 카페보다 먼저 제안한다`() {
+        places = MockPlaceSearchSource(places = farRestAreaPlaces, requestDelayMillis = 0)
+        trip = MockTripSource(
+            scope,
+            initialStatus = MockTripSource.DEFAULT_STATUS.copy(roadType = RoadType.LOCAL),
+            requestDelayMillis = 0,
+        )
+        val viewModel = createViewModel()
+
+        trip.simulateTrafficDelay(30)
+
+        assertEquals("공원 A", viewModel.awaitState { it.proposal != null }.proposal!!.place.name)
+    }
+
+    @Test
+    fun `고속도로에서는 멀어도 휴게소를 제안한다`() {
+        places = MockPlaceSearchSource(places = farRestAreaPlaces, requestDelayMillis = 0)
+        trip = MockTripSource(
+            scope,
+            initialStatus = MockTripSource.DEFAULT_STATUS.copy(roadType = RoadType.HIGHWAY),
+            requestDelayMillis = 0,
+        )
+        val viewModel = createViewModel()
+
+        trip.simulateTrafficDelay(30)
+
+        assertEquals("먼 휴게소", viewModel.awaitState { it.proposal != null }.proposal!!.place.name)
+    }
+
+    @Test
+    fun `고속도로에서 휴게소가 없으면 카페나 공원을 제안하지 않는다`() {
+        places = MockPlaceSearchSource(
+            places = MockPlaceSearchSource.DEFAULT_PLACES - PlaceKind.REST_AREA,
+            requestDelayMillis = 0,
+        )
+        trip = MockTripSource(
+            scope,
+            initialStatus = MockTripSource.DEFAULT_STATUS.copy(roadType = RoadType.HIGHWAY),
+            requestDelayMillis = 0,
+        )
+        val viewModel = createViewModel()
+
+        trip.simulateTrafficDelay(30)
+
+        val state = viewModel.awaitState { it.notice != null }
+        assertEquals("근처에서 휴식 장소를 찾지 못했어요", state.notice?.message)
+        assertNull(state.proposal)
     }
 
     @Test

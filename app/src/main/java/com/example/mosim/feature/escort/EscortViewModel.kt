@@ -13,6 +13,7 @@ import com.example.mosim.platform.pleos.CabinControl
 import com.example.mosim.platform.pleos.CabinState
 import com.example.mosim.platform.pleos.FailureReason
 import com.example.mosim.platform.pleos.GeoPoint
+import com.example.mosim.platform.pleos.RoadType
 import com.example.mosim.platform.pleos.SourceResult
 import com.example.mosim.platform.pleos.SpeechInput
 import com.example.mosim.platform.pleos.TripSource
@@ -62,6 +63,9 @@ class EscortViewModel(
     private var baselineEta: LocalTime? = null
     private var baselineMinutes: Int? = null
     private var delayCheckJob: Job? = null
+
+    /** 마지막으로 받은 도로 종류. 휴식 장소 기준이 달라진다. */
+    private var roadType: RoadType? = null
 
     init {
         viewModelScope.launch { cabinControl.state.collect(::applyCabinState) }
@@ -212,7 +216,8 @@ class EscortViewModel(
     // ---- 경유 제안 (F-1) ----
 
     private suspend fun proposePlace(kind: PlaceKind, spokenText: String) {
-        val place = findNearestPlace(kind) ?: return
+        // "쉬었다 가자"도 지연 휴식 제안과 같은 기준으로 찾는다.
+        val place = (if (kind == PlaceKind.REST_AREA) findRestPlace() else findNearestPlace(kind)) ?: return
         showProposal(
             ReplanProposal(
                 reason = ReplanReason.VoiceRequest(spokenText),
@@ -225,6 +230,7 @@ class EscortViewModel(
     }
 
     private fun onTripStatus(status: TripStatus?) {
+        roadType = status?.roadType
         mutableState.update {
             it.copy(
                 eta = status?.eta,
@@ -260,7 +266,7 @@ class EscortViewModel(
             return
         }
 
-        val place = findNearestPlace(PlaceKind.REST_AREA)
+        val place = findRestPlace()
         if (place == null) {
             setBaseline(delayedEta, delayedMinutes)
             return
@@ -298,13 +304,7 @@ class EscortViewModel(
 
     /** 현재 위치 기준으로 가장 가까운 장소 하나. 못 찾으면 이유를 알리고 null. */
     private suspend fun findNearestPlace(kind: PlaceKind): PlaceCandidate? {
-        val location: GeoPoint = when (val result = tripSource.currentLocation()) {
-            is SourceResult.Success -> result.value
-            is SourceResult.Failure -> {
-                showNotice(EscortMessages.LOCATION_UNAVAILABLE)
-                return null
-            }
-        }
+        val location = currentLocationOrNotice() ?: return null
         return when (val result = placeSearch.searchNearby(kind, location, SEARCH_RADIUS_METERS)) {
             is SourceResult.Success -> result.value.firstOrNull().also { nearest ->
                 if (nearest == null) showNotice(EscortMessages.noPlaceFound(kind))
@@ -313,6 +313,31 @@ class EscortViewModel(
                 showNotice(EscortMessages.failure(result.reason))
                 null
             }
+        }
+    }
+
+    /** [RestPlaceRule] 순서대로 찾아 처음 나온 곳. 검색이 실패하면 다음 종류로 넘어가지 않고 이유를 알린다. */
+    private suspend fun findRestPlace(): PlaceCandidate? {
+        val location = currentLocationOrNotice() ?: return null
+        val plan = RestPlaceRule.plan(roadType)
+        for (kind in plan.kindsInOrder) {
+            when (val result = placeSearch.searchNearby(kind, location, plan.radiusMeters)) {
+                is SourceResult.Success -> result.value.firstOrNull()?.let { return it }
+                is SourceResult.Failure -> {
+                    showNotice(EscortMessages.failure(result.reason))
+                    return null
+                }
+            }
+        }
+        showNotice(EscortMessages.noPlaceFound(PlaceKind.REST_AREA))
+        return null
+    }
+
+    private suspend fun currentLocationOrNotice(): GeoPoint? = when (val result = tripSource.currentLocation()) {
+        is SourceResult.Success -> result.value
+        is SourceResult.Failure -> {
+            showNotice(EscortMessages.LOCATION_UNAVAILABLE)
+            null
         }
     }
 
@@ -413,7 +438,7 @@ class EscortViewModel(
         /** [확인 필요] 계획보다 이만큼 늦어지면 휴식을 제안한다 */
         const val DELAY_THRESHOLD_MINUTES = 15L
 
-        /** [확인 필요] 근처 장소 검색 반경 */
+        /** [확인 필요] 음성으로 요청한 장소 검색 반경. 휴식 장소는 RestPlaceRule을 따른다 */
         const val SEARCH_RADIUS_METERS = 2_000
     }
 }
