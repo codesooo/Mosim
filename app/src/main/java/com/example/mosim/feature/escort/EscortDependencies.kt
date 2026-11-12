@@ -26,12 +26,18 @@ import kotlinx.coroutines.job
 /**
  * EscortViewModel에 넣을 구현을 고르는 한 곳이다. DI 라이브러리 대신 이 object를 쓴다.
  *
- * - SpeechInput: Mock. STT 담당 팀원 구현이 들어오면 바꾼다
+ * - SpeechInput: Mock. STT 담당 팀원 구현이 들어오면 바꾼다. 디버그 빌드에서는 adb로 문장을 넣을 수 있다(DebugSpeechReceiver)
  * - TripSource: Pleos 내비 서비스가 있는 기기면 NaviHelper, 없으면 Mock
  * - PlaceSearchSource: local.properties에 카카오 키가 있으면 카카오, 없으면 Mock
  * - CabinControl: Pleos 차량 서비스가 있는 기기면 온도만 실제 SDK, 음량·등받이는 Mock. 없으면 전부 Mock
  */
 object EscortDependencies {
+
+    /**
+     * 앱 전체에서 하나만 쓴다. 디버그 빌드의 DebugSpeechReceiver가 지금 화면의 ViewModel과
+     * 같은 입력에 문장을 넣어야 해서다. STT 구현이 들어오면 이 자리를 바꾼다.
+     */
+    val mockSpeechInput = MockSpeechInput()
 
     /** Pleos 차량 서비스가 받는 바인딩 action. Vehicle SDK 매니페스트의 queries와 같다. */
     private const val VEHICLE_SERVICE_ACTION = "ai.pleos.playground.vehicle.VEHICLE_START"
@@ -50,7 +56,7 @@ object EscortDependencies {
         return EscortViewModel(
             scope = scope,
             trip = MockEscortTrips.MOTHER_TO_HOSPITAL,
-            speechInput = MockSpeechInput(),
+            speechInput = mockSpeechInput,
             cabinControl = createCabinControl(appContext, scope),
             tripSource = if (isNaviAvailable) createTripSource(appContext, scope) else MockTripSource(scope),
             placeSearch = createPlaceSearch(),

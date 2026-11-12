@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <application>
+        <!--
+            디버그 빌드 전용. STT가 연동되기 전에 adb로 음성 문장을 넣어 E-2·F-1을 손으로 확인한다.
+            보내는 명령은 docs/design/escort.md "디버그용 음성 문장 주입"에 있다.
+            adb가 보내야 해서 exported=true다. release 빌드에는 이 파일이 들어가지 않는다.
+        -->
+        <receiver
+            android:name=".debug.DebugSpeechReceiver"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="com.example.mosim.DEBUG_SAY" />
+            </intent-filter>
+        </receiver>
+    </application>
+
+</manifest>
