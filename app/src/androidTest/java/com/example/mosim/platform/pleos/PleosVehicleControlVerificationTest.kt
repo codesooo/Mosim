@@ -9,6 +9,7 @@ import ai.pleos.playground.vehicle.api.model.area.SeatArea
 import ai.pleos.playground.vehicle.constant.area.SeatValue
 import ai.pleos.playground.vehicle.constant.control.MoveControl
 import ai.pleos.playground.vehicle.constant.unit.TemperatureUnit
+import ai.pleos.playground.vehicle.listener.SeatBackrestAnglePositionListener
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
@@ -149,6 +150,47 @@ class PleosVehicleControlVerificationTest {
         // 위치가 바뀌는지는 Virtual Console 지원 여부에 달려 있어 단정하지 않고 기록만 한다. [확인 필요]
     }
 
+    @Test
+    fun 동승석_등받이_위치를_구독하며_길게_움직여_본다() {
+        val seat = vehicle.getSeat()
+        val area = SeatArea(SeatValue.ROW_1_RIGHT)
+
+        // 이동용 범위와 위치용 범위가 다른 속성인지 보려고 두 capability를 모두 남긴다.
+        val angleBounds = await("angle capability") { done, fail ->
+            seat.checkSeatBackrestAngleCapabilities({ bounds -> done(bounds.describe()) }, fail)
+        }
+        report("checkSeatBackrestAngleCapabilities", angleBounds)
+        val memory = await("memory capability") { done, fail ->
+            seat.checkSeatMemoryCapabilities({ config, bounds -> done("${config.accessType} ${bounds.describe()}") }, fail)
+        }
+        report("checkSeatMemoryCapabilities", memory)
+
+        val updates = java.util.Collections.synchronizedList(mutableListOf<Int?>())
+        val listener = object : SeatBackrestAnglePositionListener {
+            override fun onSeatBackrestAnglePositionUpdated(position: Int?) {
+                updates += position
+            }
+
+            override fun onFailed(e: Exception) {
+                report("backrest listener 실패", "${e.javaClass.simpleName}: ${e.message}")
+            }
+        }
+        seat.registerSeatBackrestAnglePosition(area, listener)
+        try {
+            for (direction in listOf(MoveControl.FORWARD, MoveControl.BACKWARD)) {
+                await("move $direction") { done, fail -> seat.moveSeatBackrestAngle(area, direction, { _, v -> done(v) }, fail) }
+                Thread.sleep(LONG_MOVE_MILLIS)
+                await("stop") { done, fail -> seat.moveSeatBackrestAngle(area, MoveControl.STOP, { _, v -> done(v) }, fail) }
+                val position = await("position") { done, fail -> seat.getCurrentSeatBackrestAnglePosition(area, { done(it) }, fail) }
+                report("$direction ${LONG_MOVE_MILLIS}ms 뒤 위치", position)
+            }
+            Thread.sleep(APPLY_WAIT_MILLIS)
+            report("구독으로 받은 위치", updates.toList())
+        } finally {
+            seat.unregisterSeatBackrestAnglePosition(area, listener)
+        }
+    }
+
     /** 콜백 API를 기다린다. 실패 콜백이 오면 그 예외로 테스트를 실패시킨다. */
     private fun <T> await(
         name: String,
@@ -174,6 +216,7 @@ class PleosVehicleControlVerificationTest {
         const val BIND_WAIT_MILLIS = 2_000L
         const val APPLY_WAIT_MILLIS = 1_000L
         const val SEAT_MOVE_MILLIS = 3_000L
+        const val LONG_MOVE_MILLIS = 10_000L
         const val CALL_TIMEOUT_SECONDS = 10L
         const val POWER_POLL_COUNT = 3
     }
