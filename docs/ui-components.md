@@ -269,7 +269,7 @@ MosimAppContainer(title = "…") {
 - `InfoCard` 형태의 "AI 제안" 카드 + 제안 문구(`BodyLarge.strong()`)
   - **없음:** 안쪽 회색 제안 박스("휴식 장소 A" + 설명 + 칩 "경유지 1/2 여유" `Neutral`)
 - 왼쪽 열 아래 `PleosButton` "기존 경로 유지" + `PleosButton(Filled)` "휴식 장소 경유"
-- 오른쪽 `MapPlaceholder`("지도 · 정체 구간 + 휴식 장소")
+- 오른쪽 `MosimMap`(카카오 지도, 현재 위치 + 제안 장소 마커). 키가 없으면 `MapPlaceholder`("지도 · 정체 구간 + 휴식 장소"). `[확인 필요]` 정체 구간 표시
 
 **F-2 음성 요청 인식**
 - `MosimAppContainer` ("동승자 요청", 부제 "음성 인식 중")

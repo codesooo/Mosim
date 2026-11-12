@@ -75,7 +75,7 @@ data/
   remote/kakao/
     KakaoPlaceSearchSource.kt  HttpURLConnection + org.json (라이브러리 추가 없음)
 ui/components/
-  KakaoMapView.kt            AndroidView 래퍼 (SDK 승인 후. 그 전에는 MapPlaceholder)
+  MosimMap.kt                AndroidView로 감싼 카카오 지도. 키가 없거나 오류면 MapPlaceholder
 ```
 
 - DI 라이브러리는 쓰지 않는다. ViewModel은 `viewModel { EscortViewModel(...) }` initializer로 만든다.
@@ -200,8 +200,12 @@ data class ReplanProposal(
 - [x] 매니페스트 `INTERNET` 권한.
 - [ ] `[확인 필요]` 2026-07-21부터 카카오맵 API 무료 쿼터 방식이 바뀌었다. 무료 제공량은 계정에서 처음 활성화한 앱에만 준다. 팀 계정과 앱을 정해야 한다.
 - [ ] 반경 검색은 "현재 위치 기준"이다. 디자인 문구 "경로상"과 맞지 않아 "가까운"으로 썼다.
-- [ ] 지도 SDK: Maven 저장소, 버전, AGP 8.13 / compileSdk 36 호환, Automotive arm64 에뮬레이터 동작 (7단계, 팀 승인 후)
-- [ ] 카카오 콘솔에 패키지명과 키 해시 등록 (지도 SDK용 네이티브 앱 키. 패키지명 `com.example.mosim`은 임시)
+- [x] 지도 SDK(7단계, 팀 승인 2026-11-12): `com.kakao.maps.open:android:2.15.2`, 저장소 `devrepo.kakao.com/nexus/repository/kakaomap-releases/`.
+  arm64-v8a / armeabi-v7a만 지원한다. AGP 8.13 / compileSdk 36에서 빌드되고 arm64 에뮬레이터(API 34)에서 지도가 뜬다.
+- [x] 네이티브 앱 키는 `local.properties`의 `KAKAO_NATIVE_APP_KEY` → `BuildConfig`. 없으면 `MosimMap`이 `MapPlaceholder`를 그린다.
+- [x] 카카오 콘솔 [앱] > [플랫폼 키] > [네이티브 앱 키]에 패키지명과 키 해시 등록. 등록 전에는 지도 인증이 401이다.
+  `[확인 필요]` 팀원마다 디버그 키 해시가 달라 각자 등록해야 한다. 패키지명 `com.example.mosim`은 임시다.
+- `[확인 필요]` 카카오맵 SDK가 logcat에 네이티브 앱 키를 출력한다. 시연 녹화에 logcat이 나오지 않게 한다.
 - 응답 파싱 단위 테스트를 위해 `testImplementation(org.json:json)`을 추가했다. 앱은 안드로이드 내장 org.json을 쓴다. `[확인 필요]` 팀 공유.
 
 ## 9. 테스트
