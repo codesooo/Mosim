@@ -43,12 +43,12 @@ import java.time.LocalTime
  * 주행 중 화면이라 버튼을 두지 않는다(ui-components.md E·F 안내). 조작은 동승자 음성으로만 들어온다.
  * E-2는 화면을 따로 두지 않고 상태의 notice가 있을 때 제목 옆에 토스트를 띄운다.
  *
- * [확인 필요] 에스코트 중 Back을 최상단 규칙(onBack = null, 앱 숨김)으로 할지. 지금은 임시 메인으로 돌아가도록 onBack을 받는다.
+ * 에스코트 중에는 이 화면이 최상단이다. Back은 흐름을 끝내지 않고 앱을 숨긴다(Pleos 06 CCP Back 규칙).
+ * 운전 중 Back 한 번에 에스코트가 끊기지 않게 하려는 것이다. 다시 앱을 열면 같은 에스코트로 돌아온다.
  */
 @Composable
 fun EscortScreen(
     viewModel: EscortViewModel,
-    onBack: (() -> Unit)?,
     onProposal: () -> Unit,
 ) {
     val state by viewModel.uiState.collectAsState()
@@ -58,7 +58,7 @@ fun EscortScreen(
     LaunchedEffect(hasProposal) {
         if (hasProposal) onProposal()
     }
-    EscortContent(state = state, onBack = onBack)
+    EscortContent(state = state)
 }
 
 /**
@@ -66,24 +66,20 @@ fun EscortScreen(
  * 좁은 창에서는 내비를 옆에 두고 흘끗 보는 용도라, 같은 정보를 세로로 쌓아 한 열로 보여 준다.
  */
 @Composable
-fun EscortContent(
-    state: EscortUiState,
-    onBack: (() -> Unit)? = null,
-) {
+fun EscortContent(state: EscortUiState) {
     BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
         when (EscortLayout.of(maxWidth.value)) {
-            EscortLayout.WIDE -> WideEscortContent(state = state, onBack = onBack)
-            EscortLayout.COMPACT -> CompactEscortContent(state = state, onBack = onBack)
+            EscortLayout.WIDE -> WideEscortContent(state = state)
+            EscortLayout.COMPACT -> CompactEscortContent(state = state)
         }
     }
 }
 
 @Composable
-private fun WideEscortContent(state: EscortUiState, onBack: (() -> Unit)?) {
+private fun WideEscortContent(state: EscortUiState) {
     MosimAppContainer(
         title = "에스코트 모드",
         subtitle = EscortMessages.escortSubtitle(state.boardedAt, state.passengerName),
-        onBack = onBack,
         headerTrailing = { NoticeToast(notice = state.notice) },
     ) {
         Row(
@@ -113,11 +109,10 @@ private fun WideEscortContent(state: EscortUiState, onBack: (() -> Unit)?) {
 
 /** 제목 줄에 토스트를 붙이면 좁은 창에서 제목이 밀려 잘린다. 그래서 토스트를 제목 아래 한 줄로 내린다. */
 @Composable
-private fun CompactEscortContent(state: EscortUiState, onBack: (() -> Unit)?) {
+private fun CompactEscortContent(state: EscortUiState) {
     MosimAppContainer(
         title = "에스코트 모드",
         subtitle = EscortMessages.escortSubtitle(state.boardedAt, state.passengerName),
-        onBack = onBack,
     ) {
         Column(
             modifier = Modifier.fillMaxSize(),

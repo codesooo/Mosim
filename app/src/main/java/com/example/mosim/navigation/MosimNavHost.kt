@@ -45,8 +45,6 @@ fun MosimNavHost() {
             composable(MosimRoute.ESCORT) { entry ->
                 EscortScreen(
                     viewModel = escortViewModel(navController, entry),
-                    // [확인 필요] 임시 메인에서 들어오므로 돌아갈 수 있게 둔다. 실제 흐름에서는 최상단(null) 검토.
-                    onBack = { navController.popBackStack() },
                     onProposal = { navController.navigate(MosimRoute.ESCORT_REPLAN) { launchSingleTop = true } },
                 )
             }
