@@ -208,6 +208,20 @@ data class ReplanProposal(
 - `[확인 필요]` 도로 종류(`TripStatus.roadType`)를 NaviHelper에서 직접 주지 않는다. 후보 신호는 `TurnType.TURN_RESTAREA`·`TURN_ENTER_SERVICEAREA`, `onCurrentRoadSpeedLimit`, `TrafficCongestionInfo.roadName`. 지금은 Mock에서 null(모름)이다.
 - `[확인 필요]` 고속도로 반경 검색은 진행 방향 반대편이나 지나온 휴게소도 돌려준다(예: "안성휴게소 부산방향/서울방향").
 
+### E-1 창 크기별 배치 (`EscortLayout`)
+
+내비를 보면서 모심을 함께 보려면 Pleos 분할 화면(내비 반쪽 + 모심 반쪽)을 쓴다. 다른 앱 위에 띄우는 창(`SYSTEM_ALERT_WINDOW`)은 쓰지 않는다. 주행 핵심 정보를 가리고, 불필요한 권한이라 심사 반려 위험이 있다.
+
+| 창 너비 | 배치 |
+|---|---|
+| 1200dp 이상 (앱 영역 전체, 1682dp) | 기존 E-1: 왼쪽 히어로, 오른쪽 상태 카드 세로 3장 + 음성 대기 |
+| 1200dp 미만 (분할 반쪽, 840dp) | 한 열: 히어로 → 상태 카드 가로 3칸 → 음성 대기. E-2 토스트는 제목 아래 한 줄 |
+
+- Pleos 에뮬레이터(connect_s)는 분할 화면이 꺼져 있어(`persist.sys.systemui.splitscreen.enabled=0`, user 빌드라 켤 수 없음) 내비와 나란히 띄워 보지는 못했다. 좁은 배치는 보조 디스플레이(`adb emu multidisplay add 1 840 1184 160 0`)에 앱을 띄워 확인했다.
+- 미니앱(Pleos 홈 화면 위젯)은 시스템 앱 전용 20종이라 쓸 수 없다.
+- `[확인 필요]` 실차에서 분할 화면을 지원하는지, 분할 창 크기가 840dp인지.
+- `[확인 필요]` F-1은 아직 넓은 배치만 있다.
+
 ## 8. 카카오 연동 확인 목록
 
 카카오 개발자 문서 "카카오맵 REST API"로 확인했다(2026-11-12).
