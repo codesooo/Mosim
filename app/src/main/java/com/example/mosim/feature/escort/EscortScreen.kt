@@ -5,6 +5,7 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -60,33 +61,37 @@ fun EscortScreen(
     EscortContent(state = state, onBack = onBack)
 }
 
+/**
+ * 창 너비에 따라 배치를 바꾼다. Pleos에서는 내비와 화면을 나누면 창이 반쪽(약 840dp)이 된다.
+ * 좁은 창에서는 내비를 옆에 두고 흘끗 보는 용도라, 같은 정보를 세로로 쌓아 한 열로 보여 준다.
+ */
 @Composable
 fun EscortContent(
     state: EscortUiState,
     onBack: (() -> Unit)? = null,
 ) {
+    BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
+        when (EscortLayout.of(maxWidth.value)) {
+            EscortLayout.WIDE -> WideEscortContent(state = state, onBack = onBack)
+            EscortLayout.COMPACT -> CompactEscortContent(state = state, onBack = onBack)
+        }
+    }
+}
+
+@Composable
+private fun WideEscortContent(state: EscortUiState, onBack: (() -> Unit)?) {
     MosimAppContainer(
         title = "에스코트 모드",
         subtitle = EscortMessages.escortSubtitle(state.boardedAt, state.passengerName),
         onBack = onBack,
-        headerTrailing = {
-            // notice가 null이 된 뒤 사라지는 동안에도 마지막 문구를 보여 주려고 기억해 둔다.
-            var lastNoticeText by remember { mutableStateOf("") }
-            state.notice?.let { lastNoticeText = EscortMessages.noticeLine(it.message, it.detail) }
-            AnimatedVisibility(visible = state.notice != null, enter = fadeIn(), exit = fadeOut()) {
-                AutoAdjustToast(text = lastNoticeText)
-            }
-        },
+        headerTrailing = { NoticeToast(notice = state.notice) },
     ) {
         Row(
             modifier = Modifier.fillMaxSize(),
             horizontalArrangement = Arrangement.spacedBy(MosimDimens.CardGap),
         ) {
-            EscortHeroPanel(
-                passengerName = state.passengerName,
-                destination = state.destinationName,
-                eta = EscortMessages.clock(state.eta),
-                remaining = EscortMessages.remaining(state.remainDistanceMeters, state.remainMinutes),
+            EscortHero(
+                state = state,
                 // 피그마 E-1 비율(왼쪽 1060 : 오른쪽 400)
                 modifier = Modifier
                     .weight(HERO_WEIGHT)
@@ -98,14 +103,99 @@ fun EscortContent(
                     .fillMaxHeight(),
                 verticalArrangement = Arrangement.spacedBy(MosimDimens.CardGap),
             ) {
-                CompactInfoCard(label = "실내 온도", value = EscortMessages.temperatureValue(state.cabinTemperatureCelsius))
-                CompactInfoCard(label = "음악", value = EscortMessages.volumeValue(state.musicVolume))
-                CompactInfoCard(label = "좌석", value = EscortMessages.backrestValue(state.passengerBackrestAngle))
+                CabinCards(state = state)
                 Spacer(modifier = Modifier.weight(1f))
-                // [확인 필요] 실제 듣기 상태는 STT 담당과 합의 후 반영한다(docs/design/escort.md 11장 #1).
-                StatusPill(text = "동승자 음성 요청 대기 중", modifier = Modifier.fillMaxWidth())
+                VoiceStandbyPill()
             }
         }
+    }
+}
+
+/** 제목 줄에 토스트를 붙이면 좁은 창에서 제목이 밀려 잘린다. 그래서 토스트를 제목 아래 한 줄로 내린다. */
+@Composable
+private fun CompactEscortContent(state: EscortUiState, onBack: (() -> Unit)?) {
+    MosimAppContainer(
+        title = "에스코트 모드",
+        subtitle = EscortMessages.escortSubtitle(state.boardedAt, state.passengerName),
+        onBack = onBack,
+    ) {
+        Column(
+            modifier = Modifier.fillMaxSize(),
+            verticalArrangement = Arrangement.spacedBy(MosimDimens.CardGap),
+        ) {
+            NoticeToast(notice = state.notice, modifier = Modifier.fillMaxWidth())
+            EscortHero(
+                state = state,
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxWidth(),
+            )
+            // 세로 카드 세 장을 쌓으면 히어로가 눌려 "남은 거리" 줄이 잘렸다(840×1184에서 확인). 그래서 한 줄에 둔다.
+            Row(horizontalArrangement = Arrangement.spacedBy(MosimDimens.CardGap)) {
+                cabinItems(state).forEach { (label, value) ->
+                    CabinTile(label = label, value = value, modifier = Modifier.weight(1f))
+                }
+            }
+            VoiceStandbyPill()
+        }
+    }
+}
+
+@Composable
+private fun EscortHero(state: EscortUiState, modifier: Modifier) {
+    EscortHeroPanel(
+        passengerName = state.passengerName,
+        destination = state.destinationName,
+        eta = EscortMessages.clock(state.eta),
+        remaining = EscortMessages.remaining(state.remainDistanceMeters, state.remainMinutes),
+        modifier = modifier,
+    )
+}
+
+/** 넓은 배치와 좁은 배치가 같은 항목을 같은 순서로 보여 주도록 한 곳에서 만든다. */
+private fun cabinItems(state: EscortUiState): List<Pair<String, String>> = listOf(
+    "실내 온도" to EscortMessages.temperatureValue(state.cabinTemperatureCelsius),
+    "음악" to EscortMessages.volumeValue(state.musicVolume),
+    "좌석" to EscortMessages.backrestValue(state.passengerBackrestAngle),
+)
+
+@Composable
+private fun CabinCards(state: EscortUiState) {
+    cabinItems(state).forEach { (label, value) -> CompactInfoCard(label = label, value = value) }
+}
+
+/** 좁은 배치용 카드. 너비가 1/3이라 라벨과 값을 좌우가 아니라 위아래로 둔다. */
+@Composable
+private fun CabinTile(label: String, value: String, modifier: Modifier = Modifier) {
+    Column(
+        modifier = modifier
+            .background(PleosColor.SurfaceBasic, MosimShape.Card)
+            .padding(horizontal = 28.dp, vertical = 24.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        Text(text = label, style = PleosTypography.BodySmall, color = PleosColor.TextDarkTertiary, maxLines = 1)
+        Text(
+            text = value,
+            style = PleosTypography.TitleMedium.strong(),
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+        )
+    }
+}
+
+@Composable
+private fun VoiceStandbyPill() {
+    // [확인 필요] 실제 듣기 상태는 STT 담당과 합의 후 반영한다(docs/design/escort.md 11장 #1).
+    StatusPill(text = "동승자 음성 요청 대기 중", modifier = Modifier.fillMaxWidth())
+}
+
+/** notice가 null이 된 뒤 사라지는 동안에도 마지막 문구를 보여 주려고 기억해 둔다. */
+@Composable
+private fun NoticeToast(notice: EscortNotice?, modifier: Modifier = Modifier) {
+    var lastNoticeText by remember { mutableStateOf("") }
+    notice?.let { lastNoticeText = EscortMessages.noticeLine(it.message, it.detail) }
+    AnimatedVisibility(visible = notice != null, enter = fadeIn(), exit = fadeOut(), modifier = modifier) {
+        AutoAdjustToast(text = lastNoticeText)
     }
 }
 
@@ -153,6 +243,22 @@ private fun EscortContentNoticePreview() {
         EscortContent(
             state = previewState.copy(
                 cabinTemperatureCelsius = 23f,
+                notice = EscortNotice(
+                    id = 1,
+                    message = "온도를 24℃ → 23℃로 낮췄어요",
+                    detail = EscortMessages.AUTO_ADJUST_DETAIL,
+                ),
+            ),
+        )
+    }
+}
+
+@Preview(name = "E-1 좁은 창 (내비와 분할)", widthDp = 840, heightDp = 1184)
+@Composable
+private fun EscortContentCompactPreview() {
+    MosimTheme {
+        EscortContent(
+            state = previewState.copy(
                 notice = EscortNotice(
                     id = 1,
                     message = "온도를 24℃ → 23℃로 낮췄어요",
