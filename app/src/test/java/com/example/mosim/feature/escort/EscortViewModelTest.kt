@@ -128,6 +128,28 @@ class EscortViewModelTest {
     }
 
     @Test
+    fun `목적지 경로를 설정하지 못하면 이유를 알리고 에스코트는 계속한다`() {
+        val viewModel = EscortViewModel(
+            scope = scope,
+            trip = MockEscortTrips.MOTHER_TO_HOSPITAL,
+            speechInput = speech,
+            cabinControl = cabin,
+            tripSource = RouteRejectingTripSource(trip),
+            placeSearch = places,
+            tripIsSimulated = true,
+        )
+
+        val state = viewModel.awaitState { it.notice != null }
+        assertEquals(EscortMessages.ROUTE_NOT_SET, state.notice?.message)
+        assertEquals(EscortMessages.failure(FailureReason.NETWORK), state.notice?.detail)
+    }
+
+    private class RouteRejectingTripSource(delegate: TripSource) : TripSource by delegate {
+        override suspend fun ensureRoute(destinationName: String, location: GeoPoint): SourceResult<Unit> =
+            SourceResult.Failure(FailureReason.NETWORK)
+    }
+
+    @Test
     fun `선호 범위 밖 온도는 실행하지 않고 이유를 알린다`() {
         val viewModel = createViewModel()
 

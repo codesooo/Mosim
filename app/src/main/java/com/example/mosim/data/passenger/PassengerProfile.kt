@@ -27,4 +27,6 @@ data class EscortTrip(
     val passenger: PassengerProfile,
     val destinationName: String,
     val boardedAt: java.time.LocalTime?,
+    /** 내비에 안내 중인 경로가 없을 때 이 좌표로 경로를 요청한다. 모르면 null(요청하지 않음). */
+    val destinationLocation: com.example.mosim.platform.pleos.GeoPoint? = null,
 )

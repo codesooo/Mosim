@@ -2,6 +2,7 @@ package com.example.mosim.data.mock
 
 import com.example.mosim.data.passenger.EscortTrip
 import com.example.mosim.data.passenger.PassengerProfile
+import com.example.mosim.platform.pleos.GeoPoint
 import java.time.LocalTime
 
 /**
@@ -21,5 +22,7 @@ object MockEscortTrips {
         passenger = MOTHER,
         destinationName = "서울대병원 본관",
         boardedAt = LocalTime.of(8, 29),
+        // 카카오 로컬 키워드 검색 "서울대학교병원 본관" 결과의 본관 1층 좌표 (2026-11-12 조회)
+        destinationLocation = GeoPoint(latitude = 37.5795590, longitude = 126.9990026),
     )
 }

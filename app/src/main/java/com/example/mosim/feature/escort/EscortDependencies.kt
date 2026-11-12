@@ -2,6 +2,7 @@ package com.example.mosim.feature.escort
 
 import android.content.Context
 import android.content.Intent
+import ai.pleos.playground.navi.helper.NaviHelper
 import ai.pleos.playground.vehicle.Vehicle
 import com.example.mosim.BuildConfig
 import com.example.mosim.data.mock.MockCabinControl
@@ -14,6 +15,9 @@ import com.example.mosim.data.remote.kakao.KakaoPlaceSearchSource
 import com.example.mosim.platform.pleos.CabinControl
 import com.example.mosim.platform.pleos.PleosCabinControl
 import com.example.mosim.platform.pleos.PleosClimateApi
+import com.example.mosim.platform.pleos.PleosNaviApi
+import com.example.mosim.platform.pleos.PleosTripSource
+import com.example.mosim.platform.pleos.TripSource
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -23,17 +27,17 @@ import kotlinx.coroutines.job
  * EscortViewModel에 넣을 구현을 고르는 한 곳이다. DI 라이브러리 대신 이 object를 쓴다.
  *
  * - SpeechInput: Mock. STT 담당 팀원 구현이 들어오면 바꾼다
- * - TripSource: Mock. NaviHelper 연동 후 바꾼다
+ * - TripSource: Pleos 내비 서비스가 있는 기기면 NaviHelper, 없으면 Mock
  * - PlaceSearchSource: local.properties에 카카오 키가 있으면 카카오, 없으면 Mock
  * - CabinControl: Pleos 차량 서비스가 있는 기기면 온도만 실제 SDK, 음량·등받이는 Mock. 없으면 전부 Mock
  */
 object EscortDependencies {
 
-    /** 경로·장소 쪽은 아직 전부 Mock이다. NaviHelper가 들어오면 false로 바꾼다. */
-    private const val TRIP_IS_SIMULATED = true
-
     /** Pleos 차량 서비스가 받는 바인딩 action. Vehicle SDK 매니페스트의 queries와 같다. */
     private const val VEHICLE_SERVICE_ACTION = "ai.pleos.playground.vehicle.VEHICLE_START"
+
+    /** Pleos 내비 서비스가 받는 바인딩 action. NaviHelper SDK 매니페스트의 queries와 같다. */
+    private const val NAVI_SERVICE_ACTION = "ai.pleos.playground.intent.action.NAVI_START"
 
     /**
      * Mock은 반영 지연을 돌릴 범위가 필요하고, ViewModel도 같은 범위를 쓴다.
@@ -41,14 +45,17 @@ object EscortDependencies {
      */
     fun createViewModel(context: Context): EscortViewModel {
         val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
+        val appContext = context.applicationContext
+        val isNaviAvailable = hasService(appContext, NAVI_SERVICE_ACTION)
         return EscortViewModel(
             scope = scope,
             trip = MockEscortTrips.MOTHER_TO_HOSPITAL,
             speechInput = MockSpeechInput(),
-            cabinControl = createCabinControl(context.applicationContext, scope),
-            tripSource = MockTripSource(scope),
+            cabinControl = createCabinControl(appContext, scope),
+            tripSource = if (isNaviAvailable) createTripSource(appContext, scope) else MockTripSource(scope),
             placeSearch = createPlaceSearch(),
-            tripIsSimulated = TRIP_IS_SIMULATED,
+            // 경유지 추가 같은 경로 행동의 Mock 표시. 장소 검색은 차량을 조작하지 않아 따지지 않는다.
+            tripIsSimulated = !isNaviAvailable,
         )
     }
 
@@ -58,7 +65,7 @@ object EscortDependencies {
      */
     private fun createCabinControl(context: Context, scope: CoroutineScope): CabinControl {
         val mock = MockCabinControl(scope)
-        if (!hasVehicleService(context)) return mock
+        if (!hasService(context, VEHICLE_SERVICE_ACTION)) return mock
 
         val vehicle = Vehicle(context)
         vehicle.initialize()
@@ -66,8 +73,16 @@ object EscortDependencies {
         return PleosCabinControl(scope, PleosClimateApi(vehicle), others = mock)
     }
 
-    private fun hasVehicleService(context: Context): Boolean =
-        context.packageManager.queryIntentServices(Intent(VEHICLE_SERVICE_ACTION), 0).isNotEmpty()
+    /** NaviHelper는 범위가 끝날 때 리스너와 연결을 함께 해제한다. */
+    private fun createTripSource(context: Context, scope: CoroutineScope): TripSource {
+        val navi = PleosNaviApi(NaviHelper(context))
+        navi.connect()
+        scope.coroutineContext.job.invokeOnCompletion { navi.release() }
+        return PleosTripSource(scope, navi)
+    }
+
+    private fun hasService(context: Context, action: String): Boolean =
+        context.packageManager.queryIntentServices(Intent(action), 0).isNotEmpty()
 
     /** 키가 없는 팀원도 같은 데모를 돌릴 수 있게 키가 없으면 Mock을 쓴다. */
     private fun createPlaceSearch(): PlaceSearchSource {

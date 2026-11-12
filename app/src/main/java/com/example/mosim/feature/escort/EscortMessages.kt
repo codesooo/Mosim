@@ -114,6 +114,7 @@ object EscortMessages {
     const val ALREADY_SET = "이미 요청한 값이에요"
     const val NOT_UNDERSTOOD = "다시 말씀해 주세요"
     const val LOCATION_UNAVAILABLE = "현재 위치를 확인하지 못했어요"
+    const val ROUTE_NOT_SET = "목적지 경로를 설정하지 못했어요"
 
     fun placeKindLabel(kind: PlaceKind): String = when (kind) {
         PlaceKind.CAFE -> "카페"

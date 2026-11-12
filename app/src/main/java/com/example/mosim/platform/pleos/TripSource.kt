@@ -4,7 +4,7 @@ import kotlinx.coroutines.flow.StateFlow
 import java.time.LocalTime
 
 /**
- * 이동 중 경로 정보 경계다. 실제 구현은 NaviHelper(✅)로 한다. 이번 단계는 Mock만 둔다.
+ * 이동 중 경로 정보 경계다. 실제 구현은 PleosTripSource(NaviHelper), 개발용은 MockTripSource.
  *
  * NaviHelper 대응:
  * - [tripStatus] ← requestTrip → onTripInfo(eta), getDestinationInfo → onDestinationInfo(remainDistance, remainTime)
@@ -24,6 +24,12 @@ interface TripSource {
 
     /** 요청이 받아들여지면 Success다. 경로 재탐색이 끝난 뒤 [tripStatus]가 바뀐다. */
     suspend fun addWaypoint(name: String, location: GeoPoint): SourceResult<Unit>
+
+    /**
+     * 안내 중인 경로가 없으면 [location]으로 경로를 요청한다. 이미 있으면 그대로 둔다.
+     * 목적지 설정은 원래 이동 설정(A-3) 몫이다. A-3이 생기기 전까지 에스코트 시작 때 부른다(팀 결정 2026-11-12).
+     */
+    suspend fun ensureRoute(destinationName: String, location: GeoPoint): SourceResult<Unit> = SourceResult.Success(Unit)
 
     companion object {
         /** NaviHelper WaypointIndex는 FIRST, SECOND 두 개뿐이다. */

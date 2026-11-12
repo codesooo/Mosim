@@ -75,6 +75,7 @@ class EscortViewModel(
     init {
         viewModelScope.launch { cabinControl.state.collect(::applyCabinState) }
         viewModelScope.launch { tripSource.tripStatus.collect(::onTripStatus) }
+        viewModelScope.launch { ensureRoute() }
         // 명령은 들어온 순서대로 하나씩 처리한다. 이전 조절이 끝나기 전에 다음 조절이 끼어들지 않게 하기 위해서다.
         viewModelScope.launch { speechInput.recognizedTexts.collect { text -> handleSpeech(text) } }
     }
@@ -430,6 +431,15 @@ class EscortViewModel(
         val notice = newNotice(message, detail)
         mutableState.update { it.copy(history = it.history + entry, notice = notice) }
         scheduleNoticeHide(notice.id)
+    }
+
+    /** 내비에 경로가 없으면 에스코트 목적지로 요청한다. 실패해도 에스코트는 계속하고 이유만 알린다. */
+    private suspend fun ensureRoute() {
+        val location = trip.destinationLocation ?: return
+        val result = tripSource.ensureRoute(trip.destinationName, location)
+        if (result is SourceResult.Failure) {
+            showNotice(EscortMessages.ROUTE_NOT_SET, detail = EscortMessages.failure(result.reason))
+        }
     }
 
     private fun showNotice(message: String, detail: String? = null) {
