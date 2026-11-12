@@ -1,6 +1,5 @@
 package com.example.mosim.feature.passenger
 
-import android.widget.Toast
 import com.example.mosim.data.mock.MockPassengerProfiles
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -26,7 +25,6 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
@@ -53,8 +51,8 @@ private val relationships = listOf("전체") + MockPassengerProfiles.relationshi
 @Composable
 fun PassengerSelectScreen(
     onBack: () -> Unit,
-    onAddPassenger: (() -> Unit)? = null,
-    onMoveSettings: ((String) -> Unit)? = null,
+    onAddPassenger: () -> Unit,
+    onMoveSettings: (String) -> Unit,
     registeredPassengerId: String? = null,
 ) {
     var relationship by rememberSaveable { mutableStateOf("전체") }
@@ -68,7 +66,6 @@ fun PassengerSelectScreen(
     }
     val passengers = mockPassengers.filter { relationship == "전체" || it.relationship == relationship }
     val passenger = passengers.find { it.id == selectedId }
-    val context = LocalContext.current
 
     MosimAppContainer(
         title = "누구를 모시나요?",
@@ -124,11 +121,7 @@ fun PassengerSelectScreen(
                     }
                     item(key = "add") {
                         AddPassengerCard(
-                            onClick = {
-                                if (onAddPassenger != null) onAddPassenger()
-                                else Toast.makeText(context, "신규 등록 화면은 다음 단계에서 연결됩니다.",
-                                    Toast.LENGTH_SHORT).show()
-                            },
+                            onClick = onAddPassenger,
                             modifier = Modifier.fillMaxWidth().heightIn(
                                 min = MosimDimens.ButtonLargeHeight * 3,
                             ),
@@ -170,16 +163,9 @@ fun PassengerSelectScreen(
                     }
                 }
                 Spacer(Modifier.height(MosimDimens.CardGap))
-                // A-1 단독 검증 단계. A-3 구현 후 navigation에서 콜백을 연결한다.
                 PleosButton(
                     text = "이동 설정",
-                    onClick = {
-                        passenger?.let {
-                            if (onMoveSettings != null) onMoveSettings(it.id)
-                            else Toast.makeText(context, "이동 설정 화면은 다음 단계에서 연결됩니다.",
-                                Toast.LENGTH_SHORT).show()
-                        }
-                    },
+                    onClick = { passenger?.let { onMoveSettings(it.id) } },
                     enabled = passenger != null,
                     type = PleosButtonType.Filled,
                     modifier = Modifier.fillMaxWidth(),
@@ -207,5 +193,5 @@ private fun PreferenceRow(label: String, value: String) {
 @Preview(name = "A-1 동승자 선택", widthDp = 1700, heightDp = 1184, showBackground = true)
 @Composable
 private fun PassengerSelectScreenPreview() {
-    MosimTheme { PassengerSelectScreen(onBack = {}) }
+    MosimTheme { PassengerSelectScreen(onBack = {}, onAddPassenger = {}, onMoveSettings = {}) }
 }
