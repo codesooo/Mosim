@@ -1,8 +1,8 @@
 package com.example.mosim.ui.components
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -43,6 +43,9 @@ import com.example.mosim.ui.theme.strong
 
 /**
  * 번호가 붙은 선택지. 동승자가 "1번으로 가줘"처럼 번호로 말할 수 있게 번호를 크게 보여 준다.
+ *
+ * F-3은 후보 중 하나를 골라 두고 버튼으로 승인하는 흐름이라 [selected]로 골라진 줄을 표시한다.
+ * 피그마 F-3에서 고른 번호만 진한 원이고 나머지는 연한 원이다.
  */
 @Composable
 fun NumberedOptionItem(
@@ -52,11 +55,12 @@ fun NumberedOptionItem(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     tag: String? = null,
+    selected: Boolean = false,
 ) {
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .clickable(role = Role.Button, onClick = onClick)
+            .selectable(selected = selected, role = Role.RadioButton, onClick = onClick)
             .rowDivider()
             .padding(vertical = 24.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -65,7 +69,10 @@ fun NumberedOptionItem(
         Box(
             modifier = Modifier
                 .size(56.dp)
-                .background(PleosColor.ButtonFilledEnabled, MosimShape.Pill),
+                .background(
+                    if (selected) PleosColor.ButtonFilledEnabled else PleosColor.Basic400,
+                    MosimShape.Pill,
+                ),
             contentAlignment = Alignment.Center,
         ) {
             Text(text = number.toString(), style = PleosTypography.BodySmall.strong(), color = PleosColor.TextLightPrimary)

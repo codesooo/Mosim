@@ -34,4 +34,13 @@ object MosimDimens {
 
     // ── 버튼 (Pleos Large) ──
     val ButtonLargeHeight = 100.dp
+
+    // ── F-2 음성 파형 ──
+    // 음량이 아니라 **상태**를 알리는 표시다. 운전 중 멀리서도 보이도록 피그마 칩보다 크게 잡았다.
+    val VoiceBarWidth = 18.dp
+    val VoiceBarGap = 16.dp
+    val VoiceBarMaxHeight = 168.dp
+
+    // F-2에서 인식 문장이 나타날 자리를 미리 비워 둔다. 글자가 생길 때 레이아웃이 뛰지 않게 하려고 둔 값이다.
+    val VoiceTranscriptMinHeight = 160.dp
 }
