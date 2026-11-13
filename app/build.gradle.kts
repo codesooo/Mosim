@@ -47,6 +47,9 @@ android {
 }
 
 dependencies {
+    implementation(libs.pleos.speech.to.text)
+    // 2026-11-13: 이번 F-1 TTS 작업에 한해 개발자가 사전 검증 제한 예외를 승인했다.
+    implementation(libs.pleos.text.to.speech)
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.lifecycle.viewmodel.compose)
