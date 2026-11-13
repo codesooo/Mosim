@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <application>
+        <activity
+            android:name=".feature.planrevision.FScreenDemoActivity"
+            android:exported="true"
+            android:theme="@style/Theme.Mosim" />
+        <activity
+            android:name=".feature.voice.VoiceDemoActivity"
+            android:exported="true"
+            android:theme="@style/Theme.Mosim" />
+        <activity
+            android:name=".feature.voice.SttAudioCheckActivity"
+            android:exported="true"
+            android:theme="@style/Theme.Mosim" />
+        <activity
+            android:name=".feature.voice.SttReArmCheckActivity"
+            android:exported="true"
+            android:theme="@style/Theme.Mosim" />
+    </application>
+</manifest>
