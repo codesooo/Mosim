@@ -148,6 +148,18 @@ textToSpeech.stop()   // 완료되면 onStop() 호출
 ```
 앱 등록이 필요한 모드에서는 `onConnected()` 이후에 요청하세요.
 
+## A8-1. AudioAttributes API 확인 (2026-11-13)
+
+공식 API Reference에 setAudioAttributes가 열거되어 있다.
+현재 웹 본문에는 타입 상세가 나오지 않아, Maven v3.3.1 AAR의 classes.jar를 javap로 확인했다.
+
+```kotlin
+// 확인한 실제 시그니처: public final void setAudioAttributes(android.media.AudioAttributes)
+textToSpeech.setAudioAttributes(audioAttributes)
+```
+
+출처: https://document.pleos.ai/docs/pleos-only/connect-sdk-pleos/TextToSpeech/text-to-speech/ai.pleos.playground.tts/text-to-speech/set-audio-attributes
+
 ## A9. Error code
 <!-- 원문: /docs/pleos-only/connect-sdk-pleos/TextToSpeech/error-code -->
 오류는 `OnInitializeListener`, `OnServerConnectionListener`, `EventListener`에서 `ErrorType`으로 받습니다.
