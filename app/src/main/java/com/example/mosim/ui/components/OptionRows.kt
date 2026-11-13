@@ -85,6 +85,9 @@ fun ToggleRow(
     onCheckedChange: (Boolean) -> Unit,
     modifier: Modifier = Modifier,
     tag: String? = null,
+    // G-2는 "반복 · 3회째"(Dark) 옆에 "처음 변경", "일회성 요청"(Neutral) 태그가 있고, 마지막 행에 구분선이 없다.
+    tagTone: ChipTone = ChipTone.Dark,
+    showDivider: Boolean = true,
 ) {
     Row(
         modifier = modifier
@@ -96,12 +99,18 @@ fun ToggleRow(
                 interactionSource = remember { MutableInteractionSource() },
                 indication = null,
             )
-            .rowDivider()
+            .then(if (showDivider) Modifier.rowDivider() else Modifier)
             .padding(vertical = 24.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(24.dp),
     ) {
-        OptionTexts(title = title, tag = tag, subtitle = description, modifier = Modifier.weight(1f))
+        OptionTexts(
+            title = title,
+            tag = tag,
+            subtitle = description,
+            modifier = Modifier.weight(1f),
+            tagTone = tagTone,
+        )
         PleosSwitch(checked = checked, onCheckedChange = null)
     }
 }
@@ -113,6 +122,7 @@ private fun OptionTexts(
     tag: String?,
     subtitle: String,
     modifier: Modifier = Modifier,
+    tagTone: ChipTone = ChipTone.Dark,
 ) {
     Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Row(
@@ -126,7 +136,7 @@ private fun OptionTexts(
                 overflow = TextOverflow.Ellipsis,
             )
             if (tag != null) {
-                StatusChip(text = tag, tone = ChipTone.Dark, size = ChipSize.Small)
+                StatusChip(text = tag, tone = tagTone, size = ChipSize.Small)
             }
         }
         Text(text = subtitle, style = PleosTypography.LabelMedium, color = PleosColor.TextDarkTertiary)

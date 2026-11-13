@@ -12,6 +12,7 @@ import com.example.mosim.feature.escort.EscortPlanScreen
 import com.example.mosim.feature.home.HomeScreen
 import com.example.mosim.feature.passenger.PassengerSelectScreen
 import com.example.mosim.feature.pickup.PickupGuideScreen
+import com.example.mosim.feature.profile.ProfileUpdateScreen
 import com.example.mosim.feature.route.RouteRecommendScreen
 import com.example.mosim.feature.vehicle.VehicleStatusScreen
 
@@ -65,10 +66,17 @@ fun MosimNavHost() {
             )
         }
         composable(MosimRoute.ARRIVAL) {
-            // G-2(프로필 업데이트) 화면이 아직 없어 프로필 업데이트 확인은 이동하지 않는다.
             ArrivalScreen(
                 onBack = { navController.popBackStack() },
-                onConfirmProfileUpdate = {},
+                onConfirmProfileUpdate = { navController.navigate(MosimRoute.PROFILE_UPDATE) },
+            )
+        }
+        composable(MosimRoute.PROFILE_UPDATE) {
+            // 저장 안 함, 선택 항목 저장 이후 화면과 저장 기능이 정해지지 않아 이동하지 않는다. [확인 필요]
+            ProfileUpdateScreen(
+                onBack = { navController.popBackStack() },
+                onSkipSave = {},
+                onSaveSelected = {},
             )
         }
         composable(MosimRoute.PICKUP) {

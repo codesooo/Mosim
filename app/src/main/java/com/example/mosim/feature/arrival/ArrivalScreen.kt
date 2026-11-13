@@ -53,7 +53,7 @@ private val MockTripSummary = listOf(
 )
 
 /**
- * 프로필 업데이트 확인(G-2) 화면은 아직 없어 onConfirmProfileUpdate 콜백만 둔다.
+ * 프로필 업데이트 확인은 G-2(프로필 업데이트)로 간다. 이동은 호출부(MosimNavHost)가 정한다.
  */
 @Composable
 fun ArrivalScreen(
