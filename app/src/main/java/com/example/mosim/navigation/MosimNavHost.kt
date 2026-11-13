@@ -1,10 +1,13 @@
     package com.example.mosim.navigation
 
 import androidx.compose.runtime.Composable
+import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navArgument
 import com.example.mosim.feature.charging.ChargingStationSelectScreen
+import com.example.mosim.feature.escort.EscortPlanScreen
 import com.example.mosim.feature.home.HomeScreen
 import com.example.mosim.feature.passenger.PassengerSelectScreen
 import com.example.mosim.feature.pickup.PickupGuideScreen
@@ -26,20 +29,38 @@ fun MosimNavHost() {
             RouteRecommendScreen(onBack = { navController.popBackStack() })
         }
         composable(MosimRoute.VEHICLE) {
-            // B-3(에스코트 계획 확정) 화면이 아직 없어 이동하지 않는다. 다시 점검은 Mock이라 할 일이 없다.
+            // 다시 점검은 Mock이라 할 일이 없다.
             VehicleStatusScreen(
                 onBack = { navController.popBackStack() },
                 onShowChargingStations = { navController.navigate(MosimRoute.CHARGING_STATION) },
-                onShowEscortPlan = {},
+                onShowEscortPlan = { navController.navigate(MosimRoute.ESCORT_PLAN) },
                 onRecheck = {},
             )
         }
         composable(MosimRoute.CHARGING_STATION) {
-            // B-3 화면이 아직 없어 건너뛰기, 경유지 추가는 이동하지 않는다. 경유지 등록도 미연동이다.
+            // 두 버튼 모두 B-3으로 간다. 경유지 추가만 고른 충전소 이름을 B-3에 넘긴다.
+            // 경유지를 실제로 등록하는 기능(NaviHelper)은 미연동이다.
             ChargingStationSelectScreen(
                 onBack = { navController.popBackStack() },
-                onSkip = {},
-                onAddWaypoint = {},
+                onSkip = { navController.navigate(MosimRoute.ESCORT_PLAN) },
+                onAddWaypoint = { stationName -> navController.navigate(MosimRoute.escortPlan(stationName)) },
+            )
+        }
+        composable(
+            route = MosimRoute.ESCORT_PLAN_PATTERN,
+            arguments = listOf(
+                navArgument(MosimRoute.ESCORT_PLAN_STATION_ARG) {
+                    type = NavType.StringType
+                    nullable = true
+                    defaultValue = null
+                },
+            ),
+        ) { entry ->
+            // 안내 시작 이후 화면이 정해지지 않아 이동하지 않는다. [확인 필요]
+            EscortPlanScreen(
+                chargingStationName = entry.arguments?.getString(MosimRoute.ESCORT_PLAN_STATION_ARG),
+                onBack = { navController.popBackStack() },
+                onStartGuide = {},
             )
         }
         composable(MosimRoute.PICKUP) {

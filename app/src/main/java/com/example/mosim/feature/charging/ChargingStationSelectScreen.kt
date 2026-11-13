@@ -110,7 +110,7 @@ private val MockPickupPosition = Offset(0.84f, 0.14f)
 private val MockRoutePoints = listOf(MockCarPosition, Offset(0.30f, 0.66f), Offset(0.40f, 0.30f), MockPickupPosition)
 
 /**
- * 건너뛰기, 경유지 추가는 다음 화면(B-3)이 아직 없어 콜백만 둔다.
+ * 건너뛰기, 경유지 추가는 둘 다 B-3(에스코트 계획)으로 간다. 이동은 호출부(MosimNavHost)가 정한다.
  * 경유지 추가는 고른 충전소 이름을 넘긴다. 경유지로 실제 등록하는 기능(NaviHelper)은 미연동이다.
  */
 @Composable

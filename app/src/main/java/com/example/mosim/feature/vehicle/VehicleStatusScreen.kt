@@ -82,7 +82,7 @@ private val MockCards = listOf(
 
 /**
  * 버튼 콜백은 구조만 둔다.
- * 에스코트 계획 보기(B-3)는 이동할 화면이 아직 없고, 다시 점검은 Mock이라 갱신할 데이터가 없다.
+ * 다시 점검은 Mock이라 갱신할 데이터가 없다.
  */
 @Composable
 fun VehicleStatusScreen(
