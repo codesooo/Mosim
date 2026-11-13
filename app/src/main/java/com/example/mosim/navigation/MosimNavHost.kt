@@ -6,6 +6,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import com.example.mosim.feature.arrival.ArrivalScreen
 import com.example.mosim.feature.charging.ChargingStationSelectScreen
 import com.example.mosim.feature.escort.EscortPlanScreen
 import com.example.mosim.feature.home.HomeScreen
@@ -61,6 +62,13 @@ fun MosimNavHost() {
                 chargingStationName = entry.arguments?.getString(MosimRoute.ESCORT_PLAN_STATION_ARG),
                 onBack = { navController.popBackStack() },
                 onStartGuide = {},
+            )
+        }
+        composable(MosimRoute.ARRIVAL) {
+            // G-2(프로필 업데이트) 화면이 아직 없어 프로필 업데이트 확인은 이동하지 않는다.
+            ArrivalScreen(
+                onBack = { navController.popBackStack() },
+                onConfirmProfileUpdate = {},
             )
         }
         composable(MosimRoute.PICKUP) {
