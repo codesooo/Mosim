@@ -5,6 +5,7 @@ import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -13,7 +14,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
-import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -26,6 +26,8 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.example.mosim.platform.pleos.SpeechError
+import com.example.mosim.ui.components.InfoCard
+import com.example.mosim.ui.components.InfoRow
 import com.example.mosim.ui.components.MosimAppContainer
 import com.example.mosim.ui.components.pleos.PleosButton
 import com.example.mosim.ui.components.pleos.PleosButtonType
@@ -84,28 +86,61 @@ internal fun VoiceLayout(
             null
         },
     ) {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(PleosColor.SurfaceBasic, MosimShape.Card)
-                .padding(MosimDimens.CardPadding),
-            verticalArrangement = Arrangement.Center,
-            horizontalAlignment = Alignment.CenterHorizontally,
+        Row(
+            modifier = Modifier.fillMaxSize(),
+            horizontalArrangement = Arrangement.spacedBy(MosimDimens.CardGap),
         ) {
-            VoiceIndicator(state.phase)
-            Spacer(Modifier.height(MosimDimens.SectionGap))
-            Text(
-                // 인식 문장이 없는 동안에는 이 줄이 화면의 주인공이라 작게 쓰지 않는다.
-                text = state.statusLabel(analysisMessage),
-                style = PleosTypography.TitleSmall,
-                color = state.phase.statusColor(),
-                textAlign = TextAlign.Center,
-            )
-            Spacer(Modifier.height(MosimDimens.CardGap))
-            Transcript(state)
+            // 듣고 있는 쪽이 주인공이라 넓게 둔다(G-1의 600 : 980과 같은 생각).
+            InfoCard(
+                title = "음성 인식",
+                modifier = Modifier.weight(980f).fillMaxHeight(),
+            ) {
+                Column(
+                    modifier = Modifier.fillMaxSize(),
+                    verticalArrangement = Arrangement.Center,
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                ) {
+                    VoiceIndicator(state.phase)
+                    Spacer(Modifier.height(MosimDimens.SectionGap))
+                    Text(
+                        // 인식 문장이 없는 동안에는 이 줄이 화면의 주인공이라 작게 쓰지 않는다.
+                        text = state.statusLabel(analysisMessage),
+                        style = PleosTypography.TitleSmall,
+                        color = state.phase.statusColor(),
+                        textAlign = TextAlign.Center,
+                    )
+                    Spacer(Modifier.height(MosimDimens.CardGap))
+                    Transcript(state)
+                }
+            }
+            ExampleCard(modifier = Modifier.weight(600f).fillMaxHeight())
         }
     }
 }
+
+/**
+ * 뭐라고 말해야 할지 모르면 아무 말도 못 한다. 고정 예시라 AI가 고른 문장이 아니다.
+ * F-2는 문장을 그대로 검색어로 넘기므로 장소를 말하는 예시만 둔다.
+ */
+@Composable
+private fun ExampleCard(modifier: Modifier = Modifier) {
+    InfoCard(title = "이렇게 말해 보세요", modifier = modifier) {
+        VoiceExamples.forEachIndexed { index, example ->
+            InfoRow(
+                label = "“$example”",
+                value = "",
+                showDivider = index != VoiceExamples.lastIndex,
+                modifier = Modifier.weight(1f),
+            )
+        }
+    }
+}
+
+private val VoiceExamples = listOf(
+    "커피 마시고 싶어",
+    "화장실 가고 싶어",
+    "잠깐 쉬었다 가자",
+)
 
 /**
  * 인식 문장 자리. 글자가 없어도 높이를 차지해 레이아웃이 튀지 않는다.

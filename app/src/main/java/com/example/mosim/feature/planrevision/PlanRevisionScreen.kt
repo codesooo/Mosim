@@ -45,8 +45,6 @@ fun PlanRevisionScreen(
     onRequestWaypoint: (SuggestedPlace?) -> Unit,
     modifier: Modifier = Modifier,
     submitWaypoint: (suspend (SuggestedPlace) -> WaypointRequestState)? = null,
-    mapContent: (@Composable () -> Unit)? = null,
-    mapDebugLabel: String? = null,
     interactionAllowed: Boolean = true,
 ) {
     val scope = rememberCoroutineScope()
@@ -99,8 +97,6 @@ fun PlanRevisionScreen(
         onReplay = model::replay,
         onStopSpeaking = model::stopSpeaking,
         modifier = modifier,
-        mapContent = mapContent,
-        mapDebugLabel = mapDebugLabel,
         interactionAllowed = interactionAllowed,
     )
 }
@@ -115,8 +111,6 @@ fun PlanRevisionContent(
     onReplay: () -> Unit = {},
     onStopSpeaking: () -> Unit = {},
     modifier: Modifier = Modifier,
-    mapContent: (@Composable () -> Unit)? = null,
-    mapDebugLabel: String? = null,
     interactionAllowed: Boolean = true,
 ) {
     PlanRevisionLayout(
@@ -127,8 +121,6 @@ fun PlanRevisionContent(
         onReplay = onReplay,
         onStopSpeaking = onStopSpeaking,
         modifier = modifier,
-        mapContent = mapContent,
-        mapDebugLabel = mapDebugLabel,
         interactionAllowed = interactionAllowed,
     )
 }
