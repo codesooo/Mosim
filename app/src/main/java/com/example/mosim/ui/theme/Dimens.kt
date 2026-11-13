@@ -35,6 +35,9 @@ object MosimDimens {
     // ── 버튼 (Pleos Large) ──
     val ButtonLargeHeight = 100.dp
 
+    // 넓은 버튼 너비. 피그마 모심 화면 v2 기준 400 (B-1 "에스코트 계획 보기").
+    val ButtonWideWidth = 400.dp
+
     // ── F-2 음성 파형 ──
     // 음량이 아니라 **상태**를 알리는 표시다. 운전 중 멀리서도 보이도록 피그마 칩보다 크게 잡았다.
     val VoiceBarWidth = 18.dp

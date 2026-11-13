@@ -26,8 +26,9 @@ import com.example.mosim.ui.theme.MosimTheme
 private val menus = listOf(
     MosimRoute.PASSENGER to "동승자 선택",
     MosimRoute.ROUTE to "경로 추천",
-    MosimRoute.VEHICLE to "차량 상태",
+    MosimRoute.VEHICLE to "출발 전 점검",
     MosimRoute.PICKUP to "픽업 안내",
+    MosimRoute.ARRIVAL to "도착",
     MosimRoute.PLAN_REVISION to "AI 제안",
     MosimRoute.VOICE to "음성 요청",
 )

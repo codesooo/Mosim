@@ -15,7 +15,12 @@ class MosimNavigationTest {
     @get:Rule
     val composeRule = createAndroidComposeRule<MainActivity>()
 
-    // 메인 메뉴는 F 화면 진입점만 둔다(팀 요청). 다른 담당자 화면은 route로만 들어간다.
+    @Test
+    fun 메인에서_출발_전_점검_화면으로_이동한다() {
+        composeRule.onNodeWithText("출발 전 점검").performClick()
+        composeRule.onNodeWithText("픽업 전 충전이 필요합니다").assertIsDisplayed()
+    }
+
     @Test
     fun 메인에서_AI_제안_화면으로_이동한다() {
         composeRule.onNodeWithText("AI 제안").performClick()
