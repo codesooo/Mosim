@@ -20,4 +20,14 @@ class MainActivity : ComponentActivity() {
             }
         }
     }
+
+    override fun onStart() {
+        super.onStart()
+        AppVisibility.isVisible = true
+    }
+
+    override fun onStop() {
+        AppVisibility.isVisible = false
+        super.onStop()
+    }
 }

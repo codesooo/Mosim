@@ -14,6 +14,9 @@
     <uses-permission android:name="pleos.car.permission.NAVI_ROUTE" />
     <uses-permission android:name="pleos.car.permission.NAVI_ROUTE_SEARCH" />
 
+    <!-- 모심이 내비 뒤에 있을 때 E-2 알림·F-1 제안을 헤드업 알림으로 올린다 (NotificationEscortAlerts) -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+
     <application
         android:name=".MosimApplication"
         android:allowBackup="true"

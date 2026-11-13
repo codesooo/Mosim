@@ -49,6 +49,7 @@ class EscortViewModel(
     private val cabinControl: CabinControl,
     private val tripSource: TripSource,
     private val placeSearch: PlaceSearchSource,
+    private val alerts: EscortAlerts,
     /** 경로·장소 쪽이 Mock인지. 실내 설정은 cabinControl.simulatedFeatures로 따로 본다. */
     private val tripIsSimulated: Boolean,
     private val noticeDurationMillis: Long = NOTICE_DURATION_MILLIS,
@@ -378,6 +379,7 @@ class EscortViewModel(
     }
 
     private fun showProposal(proposal: ReplanProposal) {
+        alerts.showProposal(proposal.message)
         mutableState.update { it.copy(proposal = proposal) }
     }
 
@@ -386,6 +388,7 @@ class EscortViewModel(
     }
 
     private fun closeProposal() {
+        alerts.clearProposal()
         mutableState.update { it.copy(proposal = null) }
         val state = mutableState.value
         state.eta?.let { setBaseline(it, state.remainMinutes) }
@@ -429,6 +432,7 @@ class EscortViewModel(
     ) {
         val entry = EscortActionRecord(description, outcome, isSimulated = isSimulated(feature))
         val notice = newNotice(message, detail)
+        alerts.showNotice(message)
         mutableState.update { it.copy(history = it.history + entry, notice = notice) }
         scheduleNoticeHide(notice.id)
     }
@@ -444,6 +448,7 @@ class EscortViewModel(
 
     private fun showNotice(message: String, detail: String? = null) {
         val notice = newNotice(message, detail)
+        alerts.showNotice(message)
         mutableState.update { it.copy(notice = notice) }
         scheduleNoticeHide(notice.id)
     }

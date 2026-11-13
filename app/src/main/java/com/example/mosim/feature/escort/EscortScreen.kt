@@ -1,5 +1,9 @@
 package com.example.mosim.feature.escort
 
+import android.Manifest
+import android.os.Build
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -52,6 +56,7 @@ fun EscortScreen(
     onProposal: () -> Unit,
 ) {
     val state by viewModel.uiState.collectAsState()
+    RequestNotificationPermission()
     // 제안은 지연 감지나 음성 요청으로 화면 밖에서 생긴다. 생기면 F-1로 넘긴다.
     // E-1로 돌아왔을 때 제안이 남아 있으면 다시 넘긴다(키가 같아도 화면에 다시 들어오면 효과가 새로 돈다).
     val hasProposal = state.proposal != null
@@ -59,6 +64,17 @@ fun EscortScreen(
         if (hasProposal) onProposal()
     }
     EscortContent(state = state)
+}
+
+/**
+ * 모심이 내비 뒤에 있을 때 E-2·F-1을 시스템 알림으로 올리려면 알림 권한이 필요하다(Android 13부터).
+ * 에스코트에 들어올 때 한 번 묻는다. 거절해도 에스코트는 그대로 동작하고 화면 밖 알림만 빠진다.
+ */
+@Composable
+private fun RequestNotificationPermission() {
+    if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) return
+    val launcher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { }
+    LaunchedEffect(Unit) { launcher.launch(Manifest.permission.POST_NOTIFICATIONS) }
 }
 
 /**

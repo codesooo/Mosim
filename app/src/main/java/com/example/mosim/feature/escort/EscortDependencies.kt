@@ -29,6 +29,7 @@ import kotlinx.coroutines.job
  * - SpeechInput: Mock. STT 담당 팀원 구현이 들어오면 바꾼다. 디버그 빌드에서는 adb로 문장을 넣을 수 있다(DebugSpeechReceiver)
  * - TripSource: Pleos 내비 서비스가 있는 기기면 NaviHelper, 없으면 Mock
  * - PlaceSearchSource: local.properties에 카카오 키가 있으면 카카오, 없으면 Mock
+ * - EscortAlerts: 시스템 알림. 모심이 내비 뒤에 있을 때 E-2·F-1을 헤드업으로 알린다
  * - CabinControl: Pleos 차량 서비스가 있는 기기면 온도만 실제 SDK, 음량·등받이는 Mock. 없으면 전부 Mock
  */
 object EscortDependencies {
@@ -60,6 +61,7 @@ object EscortDependencies {
             cabinControl = createCabinControl(appContext, scope),
             tripSource = if (isNaviAvailable) createTripSource(appContext, scope) else MockTripSource(scope),
             placeSearch = createPlaceSearch(),
+            alerts = createAlerts(appContext, scope),
             // 경유지 추가 같은 경로 행동의 Mock 표시. 장소 검색은 차량을 조작하지 않아 따지지 않는다.
             tripIsSimulated = !isNaviAvailable,
         )
@@ -77,6 +79,13 @@ object EscortDependencies {
         vehicle.initialize()
         scope.coroutineContext.job.invokeOnCompletion { vehicle.release() }
         return PleosCabinControl(scope, PleosClimateApi(vehicle), others = mock)
+    }
+
+    /** 에스코트 흐름을 벗어나면 답하지 않은 제안 알림이 남지 않게 지운다. */
+    private fun createAlerts(context: Context, scope: CoroutineScope): EscortAlerts {
+        val alerts = NotificationEscortAlerts(context)
+        scope.coroutineContext.job.invokeOnCompletion { alerts.clearProposal() }
+        return alerts
     }
 
     /** NaviHelper는 범위가 끝날 때 리스너와 연결을 함께 해제한다. */

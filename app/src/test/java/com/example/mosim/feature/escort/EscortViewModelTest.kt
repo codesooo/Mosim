@@ -29,6 +29,7 @@ import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.time.LocalTime
+import java.util.concurrent.CopyOnWriteArrayList
 import java.util.concurrent.Executors
 
 /**
@@ -44,6 +45,8 @@ class EscortViewModelTest {
     private var cabin = MockCabinControl(scope, requestDelayMillis = 0, applyDelayMillis = 10)
     private var trip = MockTripSource(scope, requestDelayMillis = 0, routingDelayMillis = 10)
     private var places = MockPlaceSearchSource(requestDelayMillis = 0)
+
+    private val alerts = RecordingAlerts()
 
     /** 실제 SDK 구현처럼 동작을 바꿔야 하는 테스트에서만 넣는다. 없으면 [cabin]을 쓴다. */
     private var cabinOverride: CabinControl? = null
@@ -63,6 +66,7 @@ class EscortViewModelTest {
             cabinControl = cabinOverride ?: cabin,
             tripSource = trip,
             placeSearch = places,
+            alerts = alerts,
             tripIsSimulated = true,
             noticeDurationMillis = noticeDurationMillis,
         )
@@ -136,6 +140,7 @@ class EscortViewModelTest {
             cabinControl = cabin,
             tripSource = RouteRejectingTripSource(trip),
             placeSearch = places,
+            alerts = alerts,
             tripIsSimulated = true,
         )
 
@@ -231,6 +236,30 @@ class EscortViewModelTest {
     }
 
     @Test
+    fun `자동 조절 결과는 화면 밖 알림으로도 보낸다`() {
+        val viewModel = createViewModel()
+
+        speech.say("소리 좀 줄여")
+        val state = viewModel.awaitState { it.notice != null }
+
+        assertEquals(listOf(state.notice?.message), alerts.notices)
+    }
+
+    @Test
+    fun `장소 제안은 화면 밖 알림으로도 보내고, 답하면 지운다`() {
+        val viewModel = createViewModel()
+
+        speech.say("근처 카페 가자")
+        val proposal = viewModel.awaitState { it.proposal != null }.proposal
+        assertEquals(listOf(proposal?.message), alerts.proposals)
+        assertEquals(0, alerts.proposalClearCount)
+
+        viewModel.keepCurrentRoute()
+        viewModel.awaitState { it.proposal == null }
+        assertEquals(1, alerts.proposalClearCount)
+    }
+
+    @Test
     fun `토스트는 정해진 시간 뒤 사라진다`() {
         val viewModel = createViewModel(noticeDurationMillis = 50)
 
@@ -293,6 +322,7 @@ class EscortViewModelTest {
             cabinControl = cabin,
             tripSource = failingTrip,
             placeSearch = places,
+            alerts = alerts,
             tripIsSimulated = true,
         )
         runBlocking { withTimeout(TIMEOUT) { speech.listenerCount.first { it > 0 } } }
@@ -458,5 +488,25 @@ class EscortViewModelTest {
 
     private companion object {
         const val TIMEOUT = 2_000L
+    }
+
+    /** 알림을 실제로 띄우지 않고 무엇을 보냈는지만 적어 둔다. */
+    private class RecordingAlerts : EscortAlerts {
+        val notices = CopyOnWriteArrayList<String>()
+        val proposals = CopyOnWriteArrayList<String>()
+        @Volatile
+        var proposalClearCount = 0
+
+        override fun showNotice(message: String) {
+            notices += message
+        }
+
+        override fun showProposal(message: String) {
+            proposals += message
+        }
+
+        override fun clearProposal() {
+            proposalClearCount++
+        }
     }
 }
