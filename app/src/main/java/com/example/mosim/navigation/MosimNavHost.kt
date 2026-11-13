@@ -40,7 +40,9 @@ fun MosimNavHost() {
                     MockPassengerProfiles.passengers.add(passenger)
                     navController.previousBackStackEntry?.savedStateHandle
                         ?.set("registeredPassengerId", passenger.id)
-                    navController.popBackStack()
+                    navController.navigate("${MosimRoute.ROUTE}?passengerId=${passenger.id}") {
+                        popUpTo(MosimRoute.PASSENGER_REGISTER) { inclusive = true }
+                    }
                 },
             )
         }

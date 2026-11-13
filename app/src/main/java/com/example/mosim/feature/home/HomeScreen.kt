@@ -14,8 +14,7 @@ import com.example.mosim.ui.MosimScreenScaffold
 import com.example.mosim.ui.theme.MosimTheme
 
 private val menus = listOf(
-    MosimRoute.PASSENGER to "동승자 선택",
-    MosimRoute.ROUTE to "경로 추천",
+    MosimRoute.PASSENGER to "A. 이동계획",
     MosimRoute.VEHICLE to "차량 상태",
     MosimRoute.PICKUP to "픽업 안내"
 )

@@ -155,7 +155,7 @@ fun PassengerSelectScreen(
                         }
                         Text(
                             text = if (passenger == null) "동승자를 선택해주세요."
-                            else "표시할 선호도 데이터가 없습니다.\n현재는 화면 확인용 임시 데이터입니다.",
+                            else "표시할 선호도 데이터가 없습니다.",
                             style = PleosTypography.BodySmall,
                             color = PleosColor.TextDarkTertiary,
                             modifier = Modifier.padding(top = MosimDimens.CardGap),
