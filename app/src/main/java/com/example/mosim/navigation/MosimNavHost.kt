@@ -255,11 +255,11 @@ fun MosimNavHost(
                 },
             ),
         ) { entry ->
-            // 안내 시작 이후 화면이 정해지지 않아 이동하지 않는다. [확인 필요]
+            // 안내를 시작하면 픽업지로 출발한다(C-1).
             EscortPlanScreen(
                 chargingStationName = entry.arguments?.getString(MosimRoute.ESCORT_PLAN_STATION_ARG),
                 onBack = { navController.popBackStack() },
-                onStartGuide = {},
+                onStartGuide = { navController.navigate(MosimRoute.PICKUP_EN_ROUTE) },
             )
         }
         composable(MosimRoute.ARRIVAL) {
@@ -280,11 +280,13 @@ fun MosimNavHost(
             PickupGuideScreen(onBack = { navController.popBackStack() })
         }
 
-                // C-1 → C-2 → D-1. 도착 신호, 도어 열림 신호로 넘어가는 화면이라 앞 화면을 스택에서 뺀다.
+        // C-1 → C-2 → D-1. 도착 신호, 도어 열림 신호로 넘어가는 화면이라 앞 화면을 스택에서 뺀다.
         // 이미 지나간 단계로 Back해서 돌아가면 신호를 처음부터 다시 받게 되기 때문이다.
+        // 같은 이유로 C·D의 뒤로가기(화면 버튼과 하드키)는 이전 계획 화면(B-3)이 아니라 메인으로 간다.
+        val backToHome: () -> Unit = { navController.popBackStack(MosimRoute.HOME, inclusive = false) }
         composable(MosimRoute.PICKUP_EN_ROUTE) {
             PickupEnRouteScreen(
-                onBack = { navController.popBackStack() },
+                onBack = backToHome,
                 onArrived = {
                     navController.navigate(MosimRoute.PICKUP_PREP) {
                         popUpTo(MosimRoute.PICKUP_EN_ROUTE) { inclusive = true }
@@ -295,7 +297,7 @@ fun MosimNavHost(
 
         composable(MosimRoute.PICKUP_PREP) {
             PickupPrepScreen(
-                onBack = { navController.popBackStack() },
+                onBack = backToHome,
                 onBoardingDetected = {
                     navController.navigate(MosimRoute.BOARDING_CONFIRM) {
                         popUpTo(MosimRoute.PICKUP_PREP) { inclusive = true }
@@ -308,11 +310,16 @@ fun MosimNavHost(
 
         composable(MosimRoute.BOARDING_CONFIRM) {
             BoardingConfirmScreen(
-                onBack = { navController.popBackStack() },
-                // TODO: A-1 동승자 선택 화면이 생기면 그쪽으로 보낸다. 지금은 이전 화면으로 돌아간다.
+                onBack = backToHome,
+                // TODO: A-1 동승자 선택 화면으로 보낼지 팀과 정한다. 지금은 이전 화면으로 돌아간다.
                 onSelectOtherPassenger = { navController.popBackStack() },
-                // TODO: E-1 에스코트 모드 화면이 생기면 navigate(MosimRoute.ESCORT)로 연결한다.
-                onConfirmBoarding = {},
+                // E-1은 최상단 화면이다(Back = 앱 숨김, docs/design/escort.md).
+                // 탑승 뒤에는 계획·픽업 화면으로 돌아갈 일이 없어서 메인만 남기고 스택을 비운다.
+                onConfirmBoarding = {
+                    navController.navigate(MosimRoute.ESCORT_FLOW) {
+                        popUpTo(MosimRoute.HOME)
+                    }
+                },
             )
         }
 
