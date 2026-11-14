@@ -38,8 +38,18 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+
+    override fun onStart() {
+        super.onStart()
+        AppVisibility.isVisible = true
+    }
+
+    override fun onStop() {
+        AppVisibility.isVisible = false
+        super.onStop()
     private companion object {
         /** 분석 중 상태가 눈에 보이도록 둔 대기 시간. 실제 분석 시간이 아니다. */
         const val ANALYSIS_DELAY_MILLIS = 700L
+
     }
 }

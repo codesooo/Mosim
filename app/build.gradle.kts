@@ -1,3 +1,5 @@
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
@@ -18,6 +20,11 @@ android {
         versionName = "1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+
+        // 키는 Git에 올라가지 않는 local.properties에서만 읽는다. 없으면 빈 문자열이고, 앱은 Mock 장소 검색을 쓴다.
+        buildConfigField("String", "KAKAO_REST_API_KEY", "\"${localProperty("KAKAO_REST_API_KEY")}\"")
+        // 지도 SDK용 네이티브 앱 키. 없으면 지도 자리에 MapPlaceholder를 그린다.
+        buildConfigField("String", "KAKAO_NATIVE_APP_KEY", "\"${localProperty("KAKAO_NATIVE_APP_KEY")}\"")
     }
 
     buildTypes {
@@ -43,6 +50,7 @@ android {
 
     buildFeatures {
         compose = true
+        buildConfig = true
     }
 }
 
@@ -55,6 +63,9 @@ dependencies {
     implementation(libs.androidx.lifecycle.viewmodel.compose)
     implementation(libs.androidx.activity.compose)
     implementation(libs.androidx.navigation.compose)
+    implementation(libs.kakao.map)
+    implementation(libs.pleos.vehicle)
+    implementation(libs.pleos.navi.helper)
 
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.ui)
@@ -66,9 +77,18 @@ dependencies {
     debugImplementation(libs.androidx.ui.test.manifest)
 
     testImplementation(libs.junit)
+    testImplementation(libs.org.json)
 
     androidTestImplementation(platform(libs.androidx.compose.bom))
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
     androidTestImplementation(libs.androidx.ui.test.junit4)
+}
+
+fun localProperty(name: String): String {
+    val file = rootProject.file("local.properties")
+    if (!file.exists()) return ""
+    val properties = Properties()
+    file.inputStream().use { properties.load(it) }
+    return properties.getProperty(name, "").trim()
 }

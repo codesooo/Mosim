@@ -1,12 +1,9 @@
 package com.example.mosim.navigation
 
 import androidx.compose.runtime.Composable
-
-import androidx.compose.runtime.collectAsState
-import com.example.mosim.data.mock.MockPassengerProfiles
-import com.example.mosim.feature.passenger.PassengerRegisterScreen
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -14,36 +11,46 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalContext
+import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.navigation.NavBackStackEntry
+import androidx.navigation.NavController
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
+import androidx.navigation.compose.navigation
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import com.example.mosim.data.mock.MockPassengerProfiles
 import com.example.mosim.data.mock.MockPlaceSearchSource
 import com.example.mosim.data.mock.MockSpeechSynthesizer
 import com.example.mosim.data.mock.mockPlanSuggestion
 import com.example.mosim.feature.arrival.ArrivalScreen
 import com.example.mosim.feature.boarding.BoardingConfirmScreen
 import com.example.mosim.feature.charging.ChargingStationSelectScreen
+import com.example.mosim.feature.escort.EscortDependencies
 import com.example.mosim.feature.escort.EscortPlanScreen
+import com.example.mosim.feature.escort.EscortReplanScreen
+import com.example.mosim.feature.escort.EscortScreen
+import com.example.mosim.feature.escort.EscortViewModel
 import com.example.mosim.feature.home.HomeScreen
+import com.example.mosim.feature.passenger.PassengerRegisterScreen
 import com.example.mosim.feature.passenger.PassengerSelectScreen
 import com.example.mosim.feature.pickup.PickupEnRouteScreen
 import com.example.mosim.feature.pickup.PickupGuideScreen
-import com.example.mosim.feature.route.PlaceSearchScreen
 import com.example.mosim.feature.pickup.PickupPrepScreen
 import com.example.mosim.feature.planrevision.PlanRevisionScreen
 import com.example.mosim.feature.planrevision.PlanSuggestion
 import com.example.mosim.feature.planrevision.SuggestedPlace
 import com.example.mosim.feature.planrevision.WaypointRequestState
 import com.example.mosim.feature.profile.ProfileUpdateScreen
+import com.example.mosim.feature.route.PlaceSearchScreen
 import com.example.mosim.feature.route.RouteRecommendScreen
 import com.example.mosim.feature.vehicle.VehicleStatusScreen
 import com.example.mosim.feature.voice.VoiceAnalysisResult
 import com.example.mosim.feature.voice.VoiceScreen
-import com.example.mosim.feature.waypoint.PlaceSearchSource
 import com.example.mosim.feature.waypoint.PlaceSearchResult
+import com.example.mosim.feature.waypoint.PlaceSearchSource
 import com.example.mosim.feature.waypoint.PlaceUiModel
 import com.example.mosim.feature.waypoint.WaypointRequest
 import com.example.mosim.feature.waypoint.WaypointScreen
@@ -273,7 +280,7 @@ fun MosimNavHost(
             PickupGuideScreen(onBack = { navController.popBackStack() })
         }
 
-        // C-1 → C-2 → D-1. 도착 신호, 도어 열림 신호로 넘어가는 화면이라 앞 화면을 스택에서 뺀다.
+                // C-1 → C-2 → D-1. 도착 신호, 도어 열림 신호로 넘어가는 화면이라 앞 화면을 스택에서 뺀다.
         // 이미 지나간 단계로 Back해서 돌아가면 신호를 처음부터 다시 받게 되기 때문이다.
         composable(MosimRoute.PICKUP_EN_ROUTE) {
             PickupEnRouteScreen(
@@ -285,6 +292,7 @@ fun MosimNavHost(
                 },
             )
         }
+
         composable(MosimRoute.PICKUP_PREP) {
             PickupPrepScreen(
                 onBack = { navController.popBackStack() },
@@ -297,6 +305,7 @@ fun MosimNavHost(
                 onAdjustSettings = {},
             )
         }
+
         composable(MosimRoute.BOARDING_CONFIRM) {
             BoardingConfirmScreen(
                 onBack = { navController.popBackStack() },
@@ -306,6 +315,54 @@ fun MosimNavHost(
                 onConfirmBoarding = {},
             )
         }
+
+        navigation(
+            startDestination = MosimRoute.ESCORT,
+            route = MosimRoute.ESCORT_FLOW,
+        ) {
+            composable(MosimRoute.ESCORT) { entry ->
+                EscortScreen(
+                    viewModel = escortViewModel(navController, entry),
+                    onProposal = {
+                        navController.navigate(MosimRoute.ESCORT_REPLAN) {
+                            launchSingleTop = true
+                        }
+                    },
+                )
+            }
+
+            composable(MosimRoute.ESCORT_REPLAN) { entry ->
+                EscortReplanScreen(
+                    viewModel = escortViewModel(navController, entry),
+                    onClosed = {
+                        navController.popBackStack(
+                            MosimRoute.ESCORT,
+                            inclusive = false,
+                        )
+                    },
+                )
+            }
+        }
+    }
+}
+
+/**
+ * 에스코트 흐름 그래프에 붙은 ViewModel을 꺼낸다.
+ * 그래프 단위로 붙이면 E-1과 F-1이 같은 상태를 보고, 흐름을 벗어나면 ViewModel과 Mock이 함께 정리된다.
+ */
+@Composable
+private fun escortViewModel(
+    navController: NavController,
+    entry: NavBackStackEntry,
+): EscortViewModel {
+    val flowEntry = remember(entry) {
+        navController.getBackStackEntry(MosimRoute.ESCORT_FLOW)
+    }
+    val context = LocalContext.current
+    return viewModel(
+        viewModelStoreOwner = flowEntry,
+    ) {
+        EscortDependencies.createViewModel(context)
     }
 }
 
@@ -315,12 +372,18 @@ sealed interface WaypointRequestSource {
 }
 
 /** Applied는 외부 모듈에서 실제 경로 반영을 확인한 경우에만 반환한다. */
-enum class WaypointSubmissionResult { NotConnected, Applied, Failed }
+enum class WaypointSubmissionResult {
+    NotConnected,
+    Applied,
+    Failed,
+}
 
 @Composable
 private fun rememberPleosSynthesizer(): SpeechSynthesizer {
     val context = LocalContext.current.applicationContext
     val speech = remember(context) { PleosTtsAdapter(context) }
-    DisposableEffect(speech) { onDispose { speech.close() } }
+    DisposableEffect(speech) {
+        onDispose { speech.close() }
+    }
     return speech
 }

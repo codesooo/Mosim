@@ -22,14 +22,49 @@
 
 | 이름 | 상태 | 버전 | 의존성 | 권한 | 모심에서 쓰는 곳 | 에뮬레이터 검증 |
 |---|---|---|---|---|---|---|
-| Vehicle SDK – 조회(State) | ✅ | 2.3.2 | `Vehicle:2.3.2` | `CAR_*` (도메인별) | 착석·벨트·도어 감지, 배터리·연료, 실내 온도 조회 | 안 됨 |
-| Vehicle SDK – 제어(Control) | 🔜 | 2.3.2 (같은 라이브러리) | `Vehicle:2.3.2` | `CONTROL_CAR_*` | 공조 온도, 좌석 위치·등받이, 시트 열선·통풍 적용 | 안 됨 |
-| NaviHelper | ✅ | 3.0.5 | `NaviHelper:3.0.5` | `NAVI_ROUTE`, `NAVI_ROUTE_SEARCH`, `NAVI_CUSTOM_MAP` | 경로·ETA, 주유소·충전소 경유지, 도착 감지, 도착 예상 SOC | 안 됨 |
+| Vehicle SDK – 조회(State) | ✅ | 2.3.2 | `Vehicle:2.3.2` | `CAR_*` (도메인별) | 착석·벨트·도어 감지, 배터리·연료, 실내 온도 조회 | 일부 됨: 공조 목표 온도 조회 (2026-11-12, 아래 검증 기록) |
+| Vehicle SDK – 제어(Control) | 🔜 | 2.3.2 (같은 라이브러리) | `Vehicle:2.3.2` | `CONTROL_CAR_*` | 공조 온도, 좌석 위치·등받이, 시트 열선·통풍 적용 | 일부 됨: 공조 목표 온도 설정 됨. 좌석 등받이는 호출만 성공, 위치 변화 확인 불가 (2026-11-12, 아래 검증 기록) |
+| NaviHelper | ✅ | 3.0.5 | `NaviHelper:3.0.5` | `NAVI_ROUTE`, `NAVI_ROUTE_SEARCH`, `NAVI_CUSTOM_MAP` | 경로·ETA, 주유소·충전소 경유지, 도착 감지, 도착 예상 SOC | 됨: 경로 요청, 남은 거리·시간, 현재 위치, 경유지 추가 (2026-11-12, 아래 검증 기록) |
 | FusedLocation | 🔜 | 1.1.3 | `FusedLocation:1.1.3` | `FUSED_LOCATION` (**dangerous**) | 현재 위치, 픽업지 접근 감지(지오펜스) | 안 됨 |
 | TextToSpeech | 🔜 | 3.3.1 | `TextToSpeech:3.3.1` | `TTS_SERVICE` | F-1 AI 제안 음성 안내 (개발자 승인 예외, 3.4 참고) | 됨 (3.4 참고) |
 | SpeechToText | 🔜 | 3.3.1 | `SpeechToText:3.3.1` | `STT_SERVICE` | 동승자 음성 요청 (개발자 승인 예외, 아래 참고) | 부분 (3.4 참고) |
 | LLM SDK | ⛔ | — | — | — | 쓰지 않음 (2026-10-19 종료) | — |
 | Gleo Interface | ❓ | — | — | — | 포털이 AI 음성 연동용으로 안내. 내용 미확인 | — |
+
+### 에뮬레이터 검증 기록
+
+**2026-11-12 · Pleos Connect v2.1.0 arm64 에뮬레이터(API 34) · Vehicle 2.3.2**
+근거: `app/src/androidTest/.../platform/pleos/PleosVehicleControlVerificationTest.kt` (2/2 통과), Virtual Console(에뮬레이터 안 8088 포트) 화면 확인.
+
+- Maven 저장소는 인증 없이 받아진다.
+- 공조 목표 온도
+  - `checkHvacTemperatureCapabilities`: READ_WRITE, ROW_1_LEFT·ROW_1_RIGHT, **15.0~30.0℃** (Virtual Console 카드 설명의 16~30℃와 다르다)
+  - `setHvacTemperature(ROW_1_LEFT, 25.5)` → Virtual Console 운전석이 25.5℃로 바뀜. 이어서 24.5로 설정 후 `getHvacTemperature`가 24.5를 돌려줌
+  - **공조 전원이 꺼져 있으면 `getHvacTemperature`가 `PropertyNotAvailableException`으로 실패한다.** 설정은 전원과 상관없이 반영됐다
+  - `setHvacPower(true)`는 바로 응답하지만 `getHvacPowerState`가 true가 되기까지 3초 넘게 걸렸다
+  - 공조 전원 area는 하나다(1열 좌우 + 2열 전체 묶음)
+- 좌석 등받이
+  - `checkMoveSeatBackrestAngleCapabilities`: READ_WRITE, 1·2열 좌우 4곳
+  - `checkSeatBackrestAnglePositionCapabilities`: 위치 범위 **0~100** (각도가 아니다)
+  - `moveSeatBackrestAngle(ROW_1_RIGHT, FORWARD)` 3초 → `STOP`: 둘 다 성공 응답. 위치는 0 → 0으로 변화 없음
+  - Virtual Console에 좌석 위치 카드가 없다. 실제 이동은 에뮬레이터로 확인할 수 없다
+  - 추가 확인: Emulation Controls 48개 항목에도 좌석 위치·등받이 항목이 없다(좌석은 Seat Temperature, Seat Occupancy만)
+  - 추가 확인: FORWARD·BACKWARD를 각 10초 움직여도 위치 0. `registerSeatBackrestAnglePosition` 구독은 처음 0 한 번만 오고 이동 중 갱신 없음
+  - `checkSeatMemoryCapabilities`: 운전석(ROW_1_LEFT)만, WRITE, 슬롯 1~2. 동승석 등받이를 메모리로 맞추는 방법은 없다
+
+**2026-11-12 · Pleos Connect v2.1.0 arm64 에뮬레이터(API 34) · NaviHelper 3.0.5**
+근거: `PleosNaviHelperVerificationTest`, `PleosTripSourceDeviceTest` (통과), 내비 화면 확인.
+
+- `initialize(onConnected, onFailed)`: onConnected가 온다
+- `getCurrentLocationInfo` → 37.4127212, 127.094681 ("수정구 시흥동", 에뮬레이터 기본 위치)
+- `requestRoute`: `onRouteStarted(duration=3780, distance=23000)`가 온다. **`onRoutingCompleted`는 30초 기다려도 오지 않았다**
+  - 요청하면 **Pleos 내비 화면이 앞으로 나온다**
+- 단위: `DestinationInfo.remainDistance`는 m, `remainTime`은 초. `TripInfo.eta`도 **시각이 아니라 남은 초**(3939)였다
+- 경로가 없을 때 `onDestinationInfo`는 이름이 비고 remainDistance=0인 값을 준다
+- `addWaypoint(FIRST)` → `onWaypointChanged(index=FIRST, cmdType=ADD)`. 남은 시간 3780 → 5640초
+- `onWayPointInfo`: 이름·남은 거리는 오지만 **좌표는 0.0**으로 온다
+- **`requestTrip`을 부른 직후 `onRouteCancelled`가 와서 안내 중이던 경로가 취소됐다.** 원인 미확인 `[확인 필요]`. 안내 중에는 쓰지 않는다
+- `onCurrentRoadSpeedLimit`은 정차 중 0만 왔다
 | AAOS `CarPropertyManager` | 🅰️ | — | Android Car API | AAOS 권한 `[확인 필요]` | 차속, 기어(정차 판단), 외기 온도 | 안 됨 |
 | AAOS `CarUxRestrictions` | 🅰️ | — | Android Car API | — | 주행/정차에 따른 화면 제한 | 안 됨 |
 | 장소 검색 API | 🌐 미선정 | — | — | — | "근처 카페" 같은 요청 | — |

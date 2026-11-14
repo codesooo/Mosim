@@ -15,6 +15,12 @@ object MosimRoute {
     const val ROUTE = "route"
     const val VEHICLE = "vehicle"
     const val PICKUP = "pickup"
+
+    /** 에스코트 흐름(E-1 · F-1)을 묶는 중첩 그래프. 두 화면이 EscortViewModel 하나를 같이 쓴다. */
+    const val ESCORT_FLOW = "escort_flow"
+    const val ESCORT = "escort"
+    const val ESCORT_REPLAN = "escort_replan"
+
     const val CHARGING_STATION = "charging_station"
     const val ESCORT_PLAN = "escort_plan"
     const val ARRIVAL = "arrival"
@@ -22,7 +28,8 @@ object MosimRoute {
 
     // B-3은 B-2에서 고른 충전소 이름을 선택 인자로 받는다. B-1, B-2 건너뛰기에서는 인자 없이 ESCORT_PLAN으로 간다.
     const val ESCORT_PLAN_STATION_ARG = "chargingStation"
-    const val ESCORT_PLAN_PATTERN = "$ESCORT_PLAN?$ESCORT_PLAN_STATION_ARG={$ESCORT_PLAN_STATION_ARG}"
+    const val ESCORT_PLAN_PATTERN =
+        "$ESCORT_PLAN?$ESCORT_PLAN_STATION_ARG={$ESCORT_PLAN_STATION_ARG}"
 
     fun escortPlan(chargingStationName: String) =
         "$ESCORT_PLAN?$ESCORT_PLAN_STATION_ARG=${Uri.encode(chargingStationName)}"
@@ -34,7 +41,8 @@ object MosimRoute {
     const val WAYPOINT_ARG_QUERY = "query"
     const val WAYPOINT = "waypoint?$WAYPOINT_ARG_QUERY={$WAYPOINT_ARG_QUERY}"
 
-    fun waypoint(query: String) = "waypoint?$WAYPOINT_ARG_QUERY=${Uri.encode(query)}"
+    fun waypoint(query: String) =
+        "waypoint?$WAYPOINT_ARG_QUERY=${Uri.encode(query)}"
 
     // C·D 픽업 · 탑승 (모심 화면 v2)
     const val PICKUP_EN_ROUTE = "pickup/en-route" // C-1

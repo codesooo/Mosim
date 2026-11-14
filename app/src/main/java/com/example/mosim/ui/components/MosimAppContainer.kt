@@ -37,7 +37,7 @@ import com.example.mosim.ui.theme.strong
 /**
  * 모든 모심 화면의 바깥 틀 (피그마 mosim_app_content).
  *
- * 구성: 제목·부제 → 본문(남은 높이를 채움) → 오른쪽 정렬 하단 버튼.
+ * 구성: 제목·부제(+ 오른쪽 headerTrailing) → 본문(남은 높이를 채움) → 오른쪽 정렬 하단 버튼.
  * 피그마 v2에는 뒤로가기 버튼이 없지만, onBack이 있는 하위 화면은 제목 왼쪽에 뒤로가기 버튼을 둔다(팀 요청).
  * Pleos 06 문서상 사용자 설치 앱은 필수 조작을 터치만으로 끝낼 수 있어야 해서, 하드키 없이도 돌아갈 수 있게 했다.
  * 버튼 모양·크기는 디자인이 없어 임시다. [확인 필요]
@@ -52,12 +52,18 @@ fun MosimAppContainer(
     modifier: Modifier = Modifier,
     subtitle: String? = null,
     onBack: (() -> Unit)? = null,
+    headerTrailing: (@Composable RowScope.() -> Unit)? = null,
     bottomActions: (@Composable RowScope.() -> Unit)? = null,
     content: @Composable ColumnScope.() -> Unit,
 ) {
     val context = LocalContext.current
+
     BackHandler {
-        if (onBack != null) onBack() else context.findActivity()?.moveTaskToBack(true)
+        if (onBack != null) {
+            onBack()
+        } else {
+            context.findActivity()?.moveTaskToBack(true)
+        }
     }
 
     Column(
@@ -73,7 +79,10 @@ fun MosimAppContainer(
         ) {
             if (onBack != null) {
                 // 터치 영역은 Pleos Large 버튼 높이(100)와 같게 잡았다. 차량 화면이라 기본 48보다 크게 둔다.
-                IconButton(onClick = onBack, modifier = Modifier.size(MosimDimens.ButtonLargeHeight)) {
+                IconButton(
+                    onClick = onBack,
+                    modifier = Modifier.size(MosimDimens.ButtonLargeHeight),
+                ) {
                     Icon(
                         painter = painterResource(R.drawable.ic_chevron_left),
                         contentDescription = "뒤로 가기",
@@ -81,12 +90,23 @@ fun MosimAppContainer(
                     )
                 }
             }
+
             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                Text(text = title, style = PleosTypography.TitleLarge.strong())
+                Text(
+                    text = title,
+                    style = PleosTypography.TitleLarge.strong(),
+                )
+
                 if (subtitle != null) {
-                    Text(text = subtitle, style = PleosTypography.BodySmall, color = PleosColor.TextDarkTertiary)
+                    Text(
+                        text = subtitle,
+                        style = PleosTypography.BodySmall,
+                        color = PleosColor.TextDarkTertiary,
+                    )
                 }
             }
+
+            headerTrailing?.invoke(this)
         }
 
         Column(
@@ -99,7 +119,10 @@ fun MosimAppContainer(
         if (bottomActions != null) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(MosimDimens.CardGap, alignment = Alignment.End),
+                horizontalArrangement = Arrangement.spacedBy(
+                    MosimDimens.CardGap,
+                    alignment = Alignment.End,
+                ),
                 content = bottomActions,
             )
         }
@@ -120,7 +143,11 @@ private fun MosimAppContainerPreview() {
             title = "출발 전 점검",
             subtitle = "엄마 · 강남역 2번 출구 08:30 → 서울대병원",
             bottomActions = {
-                PleosButton(text = "다시 점검", onClick = {}, modifier = Modifier.width(280.dp))
+                PleosButton(
+                    text = "다시 점검",
+                    onClick = {},
+                    modifier = Modifier.width(280.dp),
+                )
                 PleosButton(
                     text = "에스코트 계획 보기",
                     onClick = {},
@@ -129,7 +156,10 @@ private fun MosimAppContainerPreview() {
                 )
             },
         ) {
-            Text("본문 영역", style = PleosTypography.BodyLarge)
+            Text(
+                "본문 영역",
+                style = PleosTypography.BodyLarge,
+            )
         }
     }
 }

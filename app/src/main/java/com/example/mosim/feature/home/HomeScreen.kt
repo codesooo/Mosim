@@ -28,11 +28,11 @@ private val menus = listOf(
     MosimRoute.ROUTE to "경로 추천",
     MosimRoute.VEHICLE to "출발 전 점검",
     MosimRoute.PICKUP to "픽업 안내",
-    // B-3 "안내 시작"이 C-1에 연결되기 전까지 C-1부터 시작하는 임시 입구. 연결되면 뺀다.
     MosimRoute.PICKUP_EN_ROUTE to "C-1 픽업지 이동 중",
     MosimRoute.ARRIVAL to "도착",
     MosimRoute.PLAN_REVISION to "AI 제안",
     MosimRoute.VOICE to "음성 요청",
+    MosimRoute.ESCORT_FLOW to "에스코트 모드",
 )
 
 @Composable
