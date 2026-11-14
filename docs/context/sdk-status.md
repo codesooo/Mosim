@@ -26,8 +26,8 @@
 | Vehicle SDK – 제어(Control) | 🔜 | 2.3.2 (같은 라이브러리) | `Vehicle:2.3.2` | `CONTROL_CAR_*` | 공조 온도, 좌석 위치·등받이, 시트 열선·통풍 적용 | 일부 됨: 공조 목표 온도 설정 됨. 좌석 등받이는 호출만 성공, 위치 변화 확인 불가 (2026-11-12, 아래 검증 기록) |
 | NaviHelper | ✅ | 3.0.5 | `NaviHelper:3.0.5` | `NAVI_ROUTE`, `NAVI_ROUTE_SEARCH`, `NAVI_CUSTOM_MAP` | 경로·ETA, 주유소·충전소 경유지, 도착 감지, 도착 예상 SOC | 됨: 경로 요청, 남은 거리·시간, 현재 위치, 경유지 추가 (2026-11-12, 아래 검증 기록) |
 | FusedLocation | 🔜 | 1.1.3 | `FusedLocation:1.1.3` | `FUSED_LOCATION` (**dangerous**) | 현재 위치, 픽업지 접근 감지(지오펜스) | 안 됨 |
-| TextToSpeech | 🔜 | 3.3.1 | `TextToSpeech:3.3.1` | `TTS_SERVICE` | 음성 안내 | 안 됨 |
-| SpeechToText | 🔜 | 3.3.1 | `SpeechToText:3.3.1` | `STT_SERVICE` | 동승자 음성 요청 | 안 됨 |
+| TextToSpeech | 🔜 | 3.3.1 | `TextToSpeech:3.3.1` | `TTS_SERVICE` | F-1 AI 제안 음성 안내 (개발자 승인 예외, 3.4 참고) | 됨 (3.4 참고) |
+| SpeechToText | 🔜 | 3.3.1 | `SpeechToText:3.3.1` | `STT_SERVICE` | 동승자 음성 요청 (개발자 승인 예외, 아래 참고) | 부분 (3.4 참고) |
 | LLM SDK | ⛔ | — | — | — | 쓰지 않음 (2026-10-19 종료) | — |
 | Gleo Interface | ❓ | — | — | — | 포털이 AI 음성 연동용으로 안내. 내용 미확인 | — |
 
@@ -147,6 +147,29 @@ Area 예: 운전석 `SeatValue.ROW_1_LEFT`, 동승석 `SeatValue.ROW_1_RIGHT`. `
 - Android 표준 `ACCESS_FINE_LOCATION` 동작을 이 SDK가 보장하지 않는다.
 
 ### 3.4 TextToSpeech / SpeechToText (3.3.1) 🔜
+
+> 2026-11-08 개발자 명시 승인: 이번 F-2 작업의 SpeechToText v3.3.1에 한해 실제 의존성·권한·호출 구현 및 에뮬레이터 사전 검증 제한의 예외를 허용한다. 설명회의 개발 단계 신청 불필요 안내와 공식 ON_DEVICE 앱 등록 불필요 안내가 근거다. 상태는 Coming Soon으로 유지한다.
+> ~~TTS와 다른 SDK에는 적용하지 않는다.~~ → TTS 부분은 아래 2026-11-13 승인으로 대체됐다.
+> 그 밖의 SDK에는 여전히 적용하지 않는다.
+
+> 2026-11-13 개발자 명시 승인(TextToSpeech): F-1 AI 제안 음성 안내를 위해 TextToSpeech v3.3.1의
+> 실제 의존성·권한·호출 구현을 허용한다. 2026-11-08 메모의 "TTS에는 적용하지 않는다"를 이 항목이 대체한다.
+> 근거는 ON_DEVICE가 앱 등록 없이 쓰인다는 공식 안내다. 상태는 Coming Soon으로 유지한다.
+>
+> **에뮬레이터 검증: 됨 (2026-11-13).** Pleos Connect v2.1.0에서 전체 수명주기를 확인했다.
+> `initialize - ON_DEVICE` → `addEventListener` → `setAudioAttributes(USAGE_ASSISTANT)` → `updateLocale ko_KR`
+> → `generate(speaker=seoyoon, locale=ko_KR)` → AudioTrack 346,624바이트 재생 → `onDone`
+> → `stop` → `removeEventListener` → `release`. **한국어 합성과 해제까지 실기에서 동작한다.**
+> 다만 소리 청취·발음 품질·실차 음성 출력은 미검증이다. 로그와 재현 방법은 `docs/f-screens.md`에 있다.
+
+> 2026-11-09 에뮬레이터 검증 결과(**부분**). Pleos Connect v2.1.0에서 확인한 범위는 아래와 같다.
+> 상세한 로그와 재현 방법은 `docs/voice-stt.md`에 있다.
+> - **된 것**: 의존성 해석, `STT_SERVICE` 권한 부여, `Mode.ON_DEVICE` 초기화, 리스너 등록,
+>   `Locale.KOREA` 적용, `request()`로 마이크 점유, `stop`→`removeListener`→`release` 해제.
+>   **한국어 인식 자체도 성공했다.** `sendAudio()`로 PCM을 넣어 부분 결과와 최종 결과를 받았고,
+>   최종 텍스트가 입력 문장과 정확히 일치했다.
+> - **안 된 것**: 사람이 차량 마이크에 말해서 인식되는 경로. 에뮬레이터 마이크는 무음만 들어왔다.
+>   운영 화면이 쓰는 것은 `sendAudio()`가 아니라 `request()`라, 이 구간은 여전히 미검증이다.
 
 - 모드: `HYBRID`(기본, 서버 우선 후 On-device로 전환), `SERVER`, `ON_DEVICE`.
 - `HYBRID`/`SERVER`에서 서버 기능을 쓰려면 My Project의 Client ID/Secret으로 `registerApp()`을 해야 한다.

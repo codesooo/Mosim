@@ -4,18 +4,22 @@
     <!-- 카카오 로컬 REST 장소 검색, 카카오맵 SDK -->
     <uses-permission android:name="android.permission.INTERNET" />
 
-    <!-- Pleos Vehicle SDK: 공조 온도, 동승석 등받이 (docs/reference/pleos/08 4·5절) -->
+    <!-- Pleos Vehicle SDK: 공조 온도, 동승석 등받이 -->
     <uses-permission android:name="pleos.car.permission.CAR_CLIMATE" />
     <uses-permission android:name="pleos.car.permission.CONTROL_CAR_CLIMATE" />
     <uses-permission android:name="pleos.car.permission.CAR_SEATS" />
     <uses-permission android:name="pleos.car.permission.CONTROL_CAR_SEATS" />
 
-    <!-- Pleos NaviHelper: 경로·ETA·현재 위치 조회, 경유지 추가 (docs/reference/pleos/03 A3) -->
+    <!-- Pleos NaviHelper: 경로·ETA·현재 위치 조회, 경유지 추가 -->
     <uses-permission android:name="pleos.car.permission.NAVI_ROUTE" />
     <uses-permission android:name="pleos.car.permission.NAVI_ROUTE_SEARCH" />
 
-    <!-- 모심이 내비 뒤에 있을 때 E-2 알림·F-1 제안을 헤드업 알림으로 올린다 (NotificationEscortAlerts) -->
+    <!-- E-2 알림·F-1 제안 헤드업 알림 -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+
+    <!-- STT/TTS -->
+    <uses-permission android:name="pleos.car.permission.STT_SERVICE" />
+    <uses-permission android:name="pleos.car.permission.TTS_SERVICE" />
 
     <application
         android:name=".MosimApplication"

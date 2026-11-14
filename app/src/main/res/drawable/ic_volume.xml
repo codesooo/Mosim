@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Lucide "volume-2" (ISC License, https://lucide.dev). F-1 음성 안내 컨트롤 아이콘. -->
+<!-- 28dp 박스에 선 굵기 2dp가 되도록 viewport 24 기준 strokeWidth를 1.714로 맞췄다. 색은 Icon tint로 바꾼다. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="28dp"
+    android:height="28dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <path
+        android:pathData="M11,5L6,9H2v6h4l5,4z"
+        android:strokeWidth="1.714"
+        android:strokeColor="#FF131417"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round" />
+    <path
+        android:pathData="M15.54,8.46a5,5 0 0 1 0,7.07"
+        android:strokeWidth="1.714"
+        android:strokeColor="#FF131417"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round" />
+    <path
+        android:pathData="M19.07,4.93a10,10 0 0 1 0,14.14"
+        android:strokeWidth="1.714"
+        android:strokeColor="#FF131417"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round" />
+</vector>

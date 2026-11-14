@@ -92,3 +92,31 @@ Pleos 문서와 Android·Play 공식 문서 어디에도 `com.example` 사용을
 > — https://developer.android.com/build/configure-app-module
 
 지금 `com.example.mosim`을 쓰고 있다. 배포 전에 정하고 바꾼다. [결정 필요]
+
+## 5. F 화면 경계 (2026-11-13)
+
+F-1은 feature/planrevision, F-3은 feature/waypoint에 둔다.
+각 ViewModel이 표시/선택/요청 상태를 관리하며 SDK 타입을 화면에 노출하지 않는다.
+AI 분석과 장소 검색은 주입한 suspend 함수/PlaceSearchSource로 분리한다.
+NaviHelper 실행은 MosimNavHost.submitWaypoint를 통해 외부로 전달하고 실제 반영 결과만 Applied로 표시한다.
+미연결은 NotConnected이며 성공이나 경로 완료를 가정하지 않는다.
+
+F-1 음성은 SpeechSynthesizer 경계에서 PleosTtsAdapter / MockSpeechSynthesizer로 교체한다.
+이번 요청에서 개발자가 TTS의 Coming Soon 사전 검증 제한 예외와 v3.3.1 의존성을 명시 승인했다.
+docs/context 문서는 수정하지 않는다. ON_DEVICE·한국어, 서버 등록/비밀키 없음.
+제안 ID 안내 이력은 프로세스 범위로 유지하고, 오디오 세션은 화면 이탈 시 중지한다.
+NavHost가 기본 합성기를 소유하며 화면 ViewModel은 close하지 않는다.
+실제 검증 및 오디오 정책의 한계는 docs/f-screens.md에 기록한다.
+
+주행 제한 입력은 interactionAllowed이며 운영 기본값은 false다.
+실제 CarUxRestrictions 취득은 통합 담당자가 연결한다. Mock 시연은 명시적으로 허용한다.
+기존 공통 디자인 토큰/컴포넌트와 STT SDK 어댑터는 재작성하지 않는다.
+
+## 6. F-2 음성 요청 인식 (2026-11-08 개발자 승인)
+
+F-2는 `feature/voice/VoiceViewModel`에서 상태를 관리하고 `platform/pleos/SpeechRecognizer`에 명령한다.
+SDK 콜백은 메인 스레드로 전달한다. 세션 번호로 취소 후 도착하는 결과를 차단하고 최종 결과만 Channel로 전달한다.
+기존 다른 화면의 상태 관리 방식과 Vehicle provider는 변경하지 않는다.
+실제 ON_DEVICE 어댑터와 비동기 Mock을 provider에서 선택한다. 별도 DI 라이브러리는 추가하지 않는다.
+운전 중 본문에는 버튼을 두지 않고 수동 조작은 debug Activity로 분리한다.
+수명주기, 이벤트 순서, 실행 방법과 미검증 사항은 `docs/voice-stt.md`에 있다.

@@ -73,18 +73,18 @@ Windows PowerShell에서는 `.\gradlew.bat`을 쓴다.
 Android Studio에서 `app` 구성을 선택하고 에뮬레이터나 기기에서 실행한다.
 일반 Android 에뮬레이터(API 28 이상)로도 뜬다. Pleos 에뮬레이터가 없어도 된다.
 
-실행하면 임시 메인 화면이 나오고 버튼 네 개로 각 화면으로 이동한다.
+실행하면 임시 메인 화면이 나오고 이동계획은 ‘A. 이동계획’ 버튼에서 시작한다. 신규 동승자를 등록하면 이동 설정으로 이어지고, 픽업 위치나 목적지의 ‘변경’을 누르면 장소를 검색할 수 있다.
 
 ## Mock 개발
 
-Pleos SDK 없이 개발하도록 되어 있다. 외부 데이터는 전부 Mock이다.
+차량 데이터는 Mock이다. F-2 음성 요청은 실제 Pleos STT와 Mock을 선택할 수 있다(실제 음성 인식은 미검증).
 
 - `platform/pleos/VehicleStatusSource.kt` — 화면이 보는 인터페이스
 - `data/mock/MockVehicleStatusSource.kt` — 현재 쓰는 Mock 구현
 - `platform/pleos/PleosVehicleStatusSource.kt` — 실제 SDK 연동 자리. 비어 있다
 - `platform/pleos/VehicleStatusSourceProvider.kt` — `USE_MOCK` 한 줄로 교체한다
 
-실제 SDK API를 확인하지 않은 상태라 연동 코드는 작성하지 않았다. 순서는 `PleosVehicleStatusSource.kt` 주석에 있다.
+Vehicle SDK API를 확인하지 않은 상태라 차량 연동 코드는 작성하지 않았다. 순서는 `PleosVehicleStatusSource.kt` 주석에 있다.
 
 ## 문서
 
@@ -98,3 +98,12 @@ Pleos SDK 없이 개발하도록 되어 있다. 외부 데이터는 전부 Mock�
 - 저장소: https://github.com/codesooo/Mosim
 - `main`에 직접 push하지 않는다. `feature/<이름>` 브랜치 + Pull Request.
 - `local.properties`, `.idea/`, 서명키(`*.jks`, `*.keystore`), 빌드 산출물은 커밋하지 않는다.
+
+## F-2 음성 요청 STT
+
+개발자 승인으로 SpeechToText 3.3.1을 연동했다. ON_DEVICE / ko-KR을 사용하며 앱 등록 키는 필요 없다.
+일반 에뮬레이터에서는 Mock, Pleos 에뮬레이터에서는 Pleos STT를 선택한다. 실제 SDK 음성 인식 성공은 아직 검증하지 않았다.
+
+Debug 앱 설치 후 `adb shell am start -n com.example.mosim/.feature.voice.VoiceDemoActivity`로 테스트한다.
+이 진입점은 release에 포함되지 않는다. 기존 메인 메뉴는 변경하지 않았다.
+실행·권한·테스트와 외부 콜백 연결 방법은 [F-2 STT 문서](docs/voice-stt.md)를 참고한다.

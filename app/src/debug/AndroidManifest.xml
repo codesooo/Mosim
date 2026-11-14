@@ -14,6 +14,26 @@
                 <action android:name="com.example.mosim.DEBUG_SAY" />
             </intent-filter>
         </receiver>
+
+        <activity
+            android:name=".feature.planrevision.FScreenDemoActivity"
+            android:exported="true"
+            android:theme="@style/Theme.Mosim" />
+
+        <activity
+            android:name=".feature.voice.VoiceDemoActivity"
+            android:exported="true"
+            android:theme="@style/Theme.Mosim" />
+
+        <activity
+            android:name=".feature.voice.SttAudioCheckActivity"
+            android:exported="true"
+            android:theme="@style/Theme.Mosim" />
+
+        <activity
+            android:name=".feature.voice.SttReArmCheckActivity"
+            android:exported="true"
+            android:theme="@style/Theme.Mosim" />
     </application>
 
 </manifest>
