@@ -44,6 +44,11 @@ data class TripStatus(
     val waypointCount: Int,
     /** 모르면 null이다. 휴식 장소 기준(RestPlaceRule)이 달라진다. */
     val roadType: RoadType? = null,
+    /**
+     * 목적지에 도착했다고 내비가 알려 왔는가(NaviHelper onDestinationArrived).
+     * **도착은 하차가 아니다.** 하차 감지는 별도 신호이며 아직 없다 [확인 필요].
+     */
+    val arrived: Boolean = false,
 )
 
 /**

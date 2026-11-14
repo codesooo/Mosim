@@ -9,6 +9,8 @@ import java.time.LocalTime
  * 값을 모르면 null이다. null을 0이나 기본값으로 바꿔 보여 주지 않는다(sdk-status.md Mock 작성 기준).
  */
 data class EscortUiState(
+    /** 경로·장소 쪽이 Mock인가. 화면이 Mock 표시를 붙이는 데 쓴다. */
+    val isSimulated: Boolean = false,
     val passengerName: String,
     val destinationName: String,
     val boardedAt: LocalTime?,
@@ -24,6 +26,8 @@ data class EscortUiState(
     val proposal: ReplanProposal? = null,
     /** 실행한 행동 기록. G-1 도착 요약("자동 조정 n회")에 쓴다. */
     val history: List<EscortActionRecord> = emptyList(),
+    /** 내비가 목적지 도착을 알려 왔다. 화면은 이 값을 보고 G-1로 넘어간다. */
+    val arrived: Boolean = false,
 )
 
 /**
@@ -36,6 +40,11 @@ data class EscortNotice(
 )
 
 data class ReplanProposal(
+    /**
+     * 제안 하나를 가리키는 값. 음성 안내를 제안당 한 번만 하려고 둔다(F-1 AnnouncementHistory).
+     * 내용이 같아도 새로 만든 제안이면 다른 값이다.
+     */
+    val id: String,
     val reason: ReplanReason,
     val message: String,
     val place: PlaceCandidate,

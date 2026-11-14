@@ -27,6 +27,7 @@ class EscortReplanContentTest {
     val composeRule = createComposeRule()
 
     private val delayProposal = ReplanProposal(
+        id = "test-delay",
         reason = ReplanReason.Delay(LocalTime.of(9, 12), LocalTime.of(9, 42), 30, 60),
         message = EscortMessages.restProposal("엄마"),
         place = PlaceCandidate("rest", "휴식 장소 A", "화장실 · 카페", null, GeoPoint(37.58, 126.99), 1_800),

@@ -46,6 +46,8 @@ fun PlanRevisionScreen(
     modifier: Modifier = Modifier,
     submitWaypoint: (suspend (SuggestedPlace) -> WaypointRequestState)? = null,
     interactionAllowed: Boolean = true,
+    /** 제안 장소 지도. 좌표를 모르면 넘기지 않는다(그 자리를 비운다). */
+    mapContent: (@Composable () -> Unit)? = null,
 ) {
     val scope = rememberCoroutineScope()
     val model: PlanRevisionViewModel = viewModel(
@@ -98,6 +100,7 @@ fun PlanRevisionScreen(
         onStopSpeaking = model::stopSpeaking,
         modifier = modifier,
         interactionAllowed = interactionAllowed,
+        mapContent = mapContent,
     )
 }
 
@@ -112,6 +115,7 @@ fun PlanRevisionContent(
     onStopSpeaking: () -> Unit = {},
     modifier: Modifier = Modifier,
     interactionAllowed: Boolean = true,
+    mapContent: (@Composable () -> Unit)? = null,
 ) {
     PlanRevisionLayout(
         state = state,
@@ -122,6 +126,7 @@ fun PlanRevisionContent(
         onStopSpeaking = onStopSpeaking,
         modifier = modifier,
         interactionAllowed = interactionAllowed,
+        mapContent = mapContent,
     )
 }
 

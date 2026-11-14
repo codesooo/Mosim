@@ -5,11 +5,15 @@ import android.content.Intent
 import ai.pleos.playground.navi.helper.NaviHelper
 import ai.pleos.playground.vehicle.Vehicle
 import com.example.mosim.BuildConfig
+import com.example.mosim.data.EscortSession
 import com.example.mosim.data.mock.MockCabinControl
 import com.example.mosim.data.mock.MockEscortTrips
 import com.example.mosim.data.mock.MockPlaceSearchSource
 import com.example.mosim.data.mock.MockSpeechInput
 import com.example.mosim.data.mock.MockTripSource
+import com.example.mosim.data.mock.PassengerProfile as SelectedPassenger
+import com.example.mosim.data.passenger.EscortTrip
+import com.example.mosim.data.passenger.PassengerProfile
 import com.example.mosim.data.place.PlaceSearchSource
 import com.example.mosim.data.remote.kakao.KakaoPlaceSearchSource
 import com.example.mosim.platform.pleos.CabinControl
@@ -40,6 +44,24 @@ object EscortDependencies {
      */
     val mockSpeechInput = MockSpeechInput()
 
+    /**
+     * 마지막으로 만든 Mock 경로 소스다. 실제 NaviHelper를 쓰는 기기에서는 null이다.
+     * 디버그 빌드에서 도착·정체를 손으로 흉내 내는 데만 쓴다(DebugSpeechReceiver).
+     */
+    @Volatile
+    var mockTripSource: MockTripSource? = null
+        private set
+
+    /**
+     * 실제 내비가 있어도 Mock 경로를 쓰게 한다. **디버그 시연 전용 스위치다.**
+     *
+     * 에뮬레이터에는 내비 서비스가 있지만 안내 중인 경로가 없어 도착 시각·남은 거리가 비고,
+     * 도착·정체 같은 사건도 오지 않는다. 그 상태로는 E~G를 보여 줄 수 없어 둔다.
+     * 기본값은 false다. 실제 차량·실기 검증에서는 켜지 않는다.
+     */
+    @Volatile
+    var forceMockTrip: Boolean = false
+
     /** Pleos 차량 서비스가 받는 바인딩 action. Vehicle SDK 매니페스트의 queries와 같다. */
     private const val VEHICLE_SERVICE_ACTION = "ai.pleos.playground.vehicle.VEHICLE_START"
 
@@ -54,18 +76,55 @@ object EscortDependencies {
         val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
         val appContext = context.applicationContext
         val isNaviAvailable = hasService(appContext, NAVI_SERVICE_ACTION)
+        val tripSource = if (isNaviAvailable && !forceMockTrip) {
+            createTripSource(appContext, scope).also { mockTripSource = null }
+        } else {
+            MockTripSource(scope).also { mockTripSource = it }
+        }
         return EscortViewModel(
             scope = scope,
-            trip = MockEscortTrips.MOTHER_TO_HOSPITAL,
+            trip = currentTrip(),
             speechInput = mockSpeechInput,
             cabinControl = createCabinControl(appContext, scope),
-            tripSource = if (isNaviAvailable) createTripSource(appContext, scope) else MockTripSource(scope),
+            tripSource = tripSource,
             placeSearch = createPlaceSearch(),
             alerts = createAlerts(appContext, scope),
             // 경유지 추가 같은 경로 행동의 Mock 표시. 장소 검색은 차량을 조작하지 않아 따지지 않는다.
             tripIsSimulated = !isNaviAvailable,
         )
     }
+
+    /**
+     * A에서 고른 동승자·목적지로 이번 이동을 만든다. 고르지 않았으면 Mock 기본값을 쓴다.
+     * A-1에 없는 항목(휴식 선호, 휴식 음량)은 Mock 기본값을 그대로 쓴다 [확인 필요].
+     */
+    private fun currentTrip(): EscortTrip {
+        val base = MockEscortTrips.MOTHER_TO_HOSPITAL
+        val destination = EscortSession.destination
+        return base.copy(
+            passenger = EscortSession.passenger?.let { toEscortPassenger(it, base.passenger) } ?: base.passenger,
+            destinationName = destination ?: base.destinationName,
+            boardedAt = EscortSession.boardedAt ?: base.boardedAt,
+            // 목적지를 바꾸면 좌표를 모른다. 임의 좌표로 경로를 요청하지 않는다.
+            destinationLocation = if (destination == null || destination == base.destinationName) {
+                base.destinationLocation
+            } else {
+                null
+            },
+        )
+    }
+
+    private fun toEscortPassenger(selected: SelectedPassenger, fallback: PassengerProfile) = PassengerProfile(
+        name = selected.name,
+        // 동의하지 않은 동승자는 온도를 자동으로 바꾸지 않는다(범위 null).
+        autoTemperatureRangeCelsius = if (selected.consent || selected.adjustDuringTrip) {
+            fallback.autoTemperatureRangeCelsius
+        } else {
+            null
+        },
+        prefersRestOnLongTrip = fallback.prefersRestOnLongTrip,
+        restMusicVolume = fallback.restMusicVolume,
+    )
 
     /**
      * 일반 에뮬레이터·폰에는 Pleos 차량 서비스가 없다. 그때는 지금처럼 전부 Mock으로 데모를 돌린다.

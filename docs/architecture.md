@@ -120,3 +120,27 @@ SDK 콜백은 메인 스레드로 전달한다. 세션 번호로 취소 후 도�
 실제 ON_DEVICE 어댑터와 비동기 Mock을 provider에서 선택한다. 별도 DI 라이브러리는 추가하지 않는다.
 운전 중 본문에는 버튼을 두지 않고 수동 조작은 debug Activity로 분리한다.
 수명주기, 이벤트 순서, 실행 방법과 미검증 사항은 `docs/voice-stt.md`에 있다.
+
+## 7. 전체 통합 구조 (2026-11-15)
+
+A~G를 하나의 흐름으로 묶은 뒤의 구조다. 화면 전환 조건과 모듈 경계는 `integration-contracts.md`가 기준이다.
+
+```
+MosimNavHost
+├─ A·B·C·D·G 화면: 각자 Mock 또는 Provider에서 데이터를 읽는다
+├─ data/EscortSession (object): A에서 고른 동승자·목적지, D의 탑승 시각, E의 결과를 A~G가 같이 본다
+└─ navigation(ESCORT_FLOW) : E-1 · F-1 · F-2 · F-3이 EscortViewModel 하나를 함께 쓴다
+      EscortViewModel ─ TripSource(NaviHelper|Mock)
+                      ├ CabinControl(Vehicle SDK 온도 | Mock)
+                      ├ PlaceSearchSource(카카오 | Mock)
+                      ├ VoiceCommandParser (키워드 규칙, LLM 없음)
+                      └ EscortAlerts (시스템 알림)
+```
+
+F-2·F-3을 에스코트 그래프 안에 둔 이유: 인식한 문장과 고른 장소를 E와 같은 ViewModel에 넘겨야
+명령 실행·경유지 추가·결과 안내가 한 곳에서 일어나기 때문이다. 화면끼리 상태를 주고받지 않는다.
+
+상태 관리는 ViewModel + `object` provider를 쓴다(DI 라이브러리 없음, `project-status.md` 3절).
+`EscortSession`은 프로세스 범위이며 영속화하지 않는다.
+
+F-1 화면은 `feature/planrevision` 하나로 쓴다. `EscortReplanScreen`은 Preview·Compose 테스트용으로만 남겨 뒀다.

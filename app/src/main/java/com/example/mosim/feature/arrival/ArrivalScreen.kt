@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
+import com.example.mosim.data.EscortSummary
 import com.example.mosim.ui.components.ChipTone
 import com.example.mosim.ui.components.InfoCard
 import com.example.mosim.ui.components.InfoRow
@@ -53,16 +54,34 @@ private val MockTripSummary = listOf(
 )
 
 /**
+ * 실제로 센 값(경유, 자동 조정, 음성 요청)만 요약에서 가져온다.
+ * 이동 시간·거리는 집계 근거가 없어 Mock 값을 그대로 쓰고 값 옆에 Mock이라고 적는다.
+ */
+private fun summaryRows(summary: EscortSummary): List<TripSummaryRow> = listOf(
+    TripSummaryRow("이동 시간", "76분 (Mock)"),
+    TripSummaryRow("이동 거리", "22.8km (Mock)"),
+    TripSummaryRow(
+        "경유",
+        if (summary.waypointNames.isEmpty()) "없음" else summary.waypointNames.joinToString(" · "),
+    ),
+    TripSummaryRow("자동 조정", "${summary.autoAdjustCount}회" + if (summary.isSimulated) " (Mock)" else ""),
+    TripSummaryRow("음성 요청", "${summary.voiceRequestCount}회"),
+)
+
+/**
  * 프로필 업데이트 확인은 G-2(프로필 업데이트)로 간다. 이동은 호출부(MosimNavHost)가 정한다.
  */
 @Composable
 fun ArrivalScreen(
     onBack: () -> Unit,
     onConfirmProfileUpdate: () -> Unit,
+    /** 방금 끝난 에스코트 요약. 없으면(개발용 직접 진입) 아래 Mock 값을 보여 준다. */
+    summary: EscortSummary? = null,
 ) {
+    val rows = summary?.let(::summaryRows) ?: MockTripSummary
     MosimAppContainer(
         title = "도착",
-        subtitle = MockSubtitle,
+        subtitle = summary?.let { "${it.destinationName} · ${it.passengerName} 에스코트 종료" } ?: MockSubtitle,
         onBack = onBack,
     ) {
         Row(
@@ -93,11 +112,11 @@ fun ArrivalScreen(
                     .weight(980f)
                     .fillMaxHeight(),
             ) {
-                MockTripSummary.forEachIndexed { index, row ->
+                rows.forEachIndexed { index, row ->
                     InfoRow(
                         label = row.label,
                         value = row.value,
-                        showDivider = index != MockTripSummary.lastIndex,
+                        showDivider = index != rows.lastIndex,
                     )
                 }
                 Spacer(modifier = Modifier.weight(1f))

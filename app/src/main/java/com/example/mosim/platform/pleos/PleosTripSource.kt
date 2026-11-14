@@ -5,6 +5,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import java.time.LocalTime
@@ -29,6 +30,12 @@ class PleosTripSource(
     override val tripStatus: StateFlow<TripStatus?> = mutableStatus.asStateFlow()
 
     init {
+        // 도착 이벤트는 밀어 주는 쪽이라 polling과 별도로 받는다. 남은 거리 0을 도착으로 추측하지 않는다.
+        scope.launch {
+            navi.arrivals.collect {
+                mutableStatus.update { current -> current?.copy(arrived = true) }
+            }
+        }
         scope.launch {
             while (isActive) {
                 refresh()
@@ -83,6 +90,8 @@ class PleosTripSource(
             remainDistanceMeters = progress.remainDistanceMeters,
             remainMinutes = ceil(progress.remainSeconds / SECONDS_PER_MINUTE).toInt(),
             waypointCount = waypoints,
+            // 도착은 이벤트로만 정한다. 다시 조회했다고 도착 상태를 지우지 않는다.
+            arrived = mutableStatus.value?.arrived == true,
         )
     }
 

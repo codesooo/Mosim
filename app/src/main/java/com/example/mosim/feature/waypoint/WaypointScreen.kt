@@ -25,6 +25,10 @@ import androidx.lifecycle.viewmodel.viewModelFactory
 import com.example.mosim.R
 import com.example.mosim.data.mock.mockPlaces
 import com.example.mosim.ui.components.ChipTone
+import com.example.mosim.platform.pleos.GeoPoint
+import com.example.mosim.ui.components.MapMarker
+import com.example.mosim.ui.components.MapMarkerKind
+import com.example.mosim.ui.components.MosimMap
 import com.example.mosim.ui.components.InfoCard
 import com.example.mosim.ui.components.InfoRow
 import com.example.mosim.ui.components.MosimAppContainer
@@ -56,6 +60,8 @@ fun WaypointScreen(
     modifier: Modifier = Modifier,
     submitWaypoint: (suspend (PlaceUiModel) -> WaypointRequest)? = null,
     interactionAllowed: Boolean = true,
+    /** 검색 기준이 된 현재 위치. 지도에 함께 찍는다. 모르면 null. */
+    origin: GeoPoint? = null,
 ) {
     val scope = rememberCoroutineScope()
     val model: WaypointViewModel = viewModel(
@@ -85,6 +91,7 @@ fun WaypointScreen(
         },
         interactionAllowed = interactionAllowed,
         modifier = modifier,
+        origin = origin,
     )
 }
 
@@ -97,6 +104,8 @@ fun WaypointContent(
     onConfirm: () -> Unit = {},
     modifier: Modifier = Modifier,
     interactionAllowed: Boolean = true,
+    /** 검색 기준이 된 현재 위치. 모르면 지도에 현재 위치를 찍지 않는다. */
+    origin: GeoPoint? = null,
 ) {
     val ready = state as? WaypointUiState.Ready
     MosimAppContainer(
@@ -142,11 +151,24 @@ fun WaypointContent(
                     is WaypointUiState.Ready -> PlaceList(state) { if (interactionAllowed) onSelect(it) }
                 }
             }
-            SelectionCard(
-                ready = ready,
-                interactionAllowed = interactionAllowed,
+            Column(
                 modifier = Modifier.weight(600f).fillMaxHeight(),
-            )
+                verticalArrangement = Arrangement.spacedBy(MosimDimens.CardGap),
+            ) {
+                // 선택 정보와 지도가 높이를 나눠 쓴다. 한쪽이 전부 차지하면 지도가 사라진다.
+                SelectionCard(
+                    ready = ready,
+                    interactionAllowed = interactionAllowed,
+                    modifier = Modifier.fillMaxWidth().weight(1f),
+                )
+                // 좌표를 받은 후보만 찍는다. 좌표가 없으면 빈 지도가 된다.
+                MosimMap(
+                    markers = mapMarkers(ready, origin),
+                    placeholderText = "지도 · 현재 위치 + 장소 후보",
+                    focus = ready?.selected?.location,
+                    modifier = Modifier.fillMaxWidth().weight(1f),
+                )
+            }
         }
     }
 }
@@ -278,3 +300,9 @@ private fun WaypointFailedPreview() {
         WaypointContent(WaypointUiState.Failed("장소를 불러오지 못했어요"), onBack = {})
     }
 }
+
+private fun mapMarkers(ready: WaypointUiState.Ready?, origin: GeoPoint?): List<MapMarker> =
+    listOfNotNull(origin?.let { MapMarker(it, MapMarkerKind.CURRENT_LOCATION) }) +
+        ready?.places.orEmpty().mapNotNull { place ->
+            place.location?.let { MapMarker(it, MapMarkerKind.PLACE) }
+        }
