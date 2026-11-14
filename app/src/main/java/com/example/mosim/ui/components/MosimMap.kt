@@ -84,11 +84,14 @@ fun MosimMap(
     focus: GeoPoint? = null,
 ) {
     var hasError by remember { mutableStateOf(false) }
-    if (LocalInspectionMode.current || !MosimApplication.isKakaoMapAvailable || hasError) {
-        MapPlaceholder(
-            text = if (hasError) MAP_ERROR_TEXT else placeholderText,
-            modifier = modifier,
-        )
+    // Preview는 네트워크도 SDK도 쓰지 않으므로 자리 표시만 그린다.
+    if (LocalInspectionMode.current) {
+        MapPlaceholder(text = placeholderText, modifier = modifier)
+        return
+    }
+    // 네이티브 지도를 쓸 수 없는 기기(x86_64 에뮬레이터 등)에서는 WebView 지도로 대신 그린다.
+    if (!MosimApplication.isKakaoMapAvailable || hasError) {
+        WebMap(markers = markers, modifier = modifier, focus = focus)
         return
     }
 

@@ -155,12 +155,13 @@ fun WaypointContent(
                 modifier = Modifier.weight(600f).fillMaxHeight(),
                 verticalArrangement = Arrangement.spacedBy(MosimDimens.CardGap),
             ) {
+                // 선택 정보와 지도가 높이를 나눠 쓴다. 한쪽이 전부 차지하면 지도가 사라진다.
                 SelectionCard(
                     ready = ready,
                     interactionAllowed = interactionAllowed,
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier.fillMaxWidth().weight(1f),
                 )
-                // 좌표를 받은 후보만 찍는다. 좌표가 없으면(또는 지도 키가 없으면) 자리 표시만 보인다.
+                // 좌표를 받은 후보만 찍는다. 좌표가 없으면 빈 지도가 된다.
                 MosimMap(
                     markers = mapMarkers(ready, origin),
                     placeholderText = "지도 · 현재 위치 + 장소 후보",

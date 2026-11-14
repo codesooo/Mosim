@@ -116,12 +116,23 @@ ReplanProposal ──(MosimNavHost.toSuggestion)──> PlanSuggestion → PlanR
   이 선언과 런타임 승인이 없으면 `request()` 경로에 음성이 들어오지 않는다(2026-11-15 실기 확인).
 - `POST_NOTIFICATIONS` — E-2·F-1 헤드업 알림.
 
-### 지도 제약 (2026-11-15 확인)
+### 지도 (2026-11-15 확인)
 
-카카오 벡터맵 AAR에는 `arm64-v8a`, `armeabi-v7a` 네이티브 라이브러리만 들어 있다.
-**x86_64 Pleos 에뮬레이터에서는 `libK3fAndroid.so`를 찾지 못해 초기화가 실패한다.**
-`MosimApplication`이 이 실패를 잡아 지도만 끄고 앱은 계속 돌린다. 지도 렌더 확인은 arm 기기나
-arm 시스템 이미지가 필요하다 [확인 필요].
+지도는 기기에 따라 두 가지로 그린다. 화면 코드는 `MosimMap` 하나만 쓰고 어느 쪽인지 알지 않는다.
+
+| 기기 | 그리는 것 |
+|---|---|
+| arm 기기(실제 차량·폰) | 카카오 벡터맵 네이티브 SDK |
+| x86_64 에뮬레이터 | `ui/components/WebMap` — WebView + Leaflet + OpenStreetMap 타일 |
+
+카카오 벡터맵 AAR에는 `arm64-v8a`, `armeabi-v7a` 네이티브 라이브러리만 들어 있어
+**x86_64 Pleos 에뮬레이터에서는 `libK3fAndroid.so`를 찾지 못한다.** `MosimApplication`이 이 실패를 잡고,
+`MosimMap`이 WebView 지도로 대신 그린다. 앱은 죽지 않는다.
+
+WebView 지도는 Leaflet과 타일을 **실행 시점에 내려받는다.** Gradle 의존성은 추가하지 않았다.
+네트워크가 없으면 빈 회색 판이 되고, 타일이 다 깔리기까지 몇 초 걸린다.
+[확인 필요] OSM 타일 사용 정책과 저작자 표시는 팀에서 확인한다(Leaflet이 지도 위에 표기를 넣는다).
+[확인 필요] arm 기기에서 카카오 네이티브 지도가 실제로 그려지는지는 아직 보지 못했다.
 
 ## 6. 디버그 전용 진입점 (release 미포함)
 
