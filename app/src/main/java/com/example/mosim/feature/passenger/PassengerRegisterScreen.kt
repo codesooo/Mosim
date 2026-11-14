@@ -68,7 +68,7 @@ fun PassengerRegisterScreen(
                 ) {
                     Spacer(Modifier.height(MosimDimens.CardGap))
                     MosimTextField(
-                        label = "이름 · 호칭", value = name, onValueChange = { name = it },
+                        label = "이름 · 호칭 (필수)", value = name, onValueChange = { name = it },
                         placeholder = "예: 엄마, 김 부장님",
                     )
                     Text("관계", style = PleosTypography.LabelMedium, color = PleosColor.TextDarkTertiary)
@@ -79,7 +79,7 @@ fun PassengerRegisterScreen(
                         modifier = Modifier.fillMaxWidth(),
                     )
                     MosimTextField(
-                        label = "좌석 위치", value = seat, onValueChange = { seat = it },
+                        label = "좌석 위치 (필수)", value = seat, onValueChange = { seat = it },
                         modifier = Modifier.focusRequester(seatFocusRequester),
                         trailing = {
                             Text(
