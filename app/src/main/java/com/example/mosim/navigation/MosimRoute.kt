@@ -33,4 +33,9 @@ object MosimRoute {
     const val WAYPOINT = "waypoint?$WAYPOINT_ARG_QUERY={$WAYPOINT_ARG_QUERY}"
 
     fun waypoint(query: String) = "waypoint?$WAYPOINT_ARG_QUERY=${Uri.encode(query)}"
+
+    // C·D 픽업 · 탑승 (모심 화면 v2)
+    const val PICKUP_EN_ROUTE = "pickup/en-route" // C-1
+    const val PICKUP_PREP = "pickup/prep" // C-2
+    const val BOARDING_CONFIRM = "boarding/confirm" // D-1
 }

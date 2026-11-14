@@ -117,6 +117,9 @@ object MosimColor {
     // 카드 안 정보 행 사이 구분선 (Pleos divider 토큰보다 옅은 8%)
     val RowDivider = PleosColor.Basic900.copy(alpha = 0.08f)
 
+    // 보조 안내 문구 (C-2 "저장 당시와 현재…", D-1 "차량 신호만으로는…", C-1 "공유됨"). Pleos 토큰에 50%가 없다.
+    val TextHint = PleosColor.Basic900.copy(alpha = 0.50f)
+
     // 팝업 뒤 배경을 덮는 반투명 막 (G-2 "저장되었습니다." 팝업).
     // [확인 필요] 피그마와 Pleos 토큰에 팝업 배경(dim) 값이 없어 임시로 검정 40%를 썼다. 디자인이 나오면 교체.
     val Scrim = PleosColor.Basic900.copy(alpha = 0.40f)
