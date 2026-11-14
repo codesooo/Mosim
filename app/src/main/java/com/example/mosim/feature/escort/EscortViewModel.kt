@@ -2,6 +2,8 @@ package com.example.mosim.feature.escort
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.mosim.data.EscortSession
+import com.example.mosim.data.EscortSummary
 import com.example.mosim.data.passenger.EscortTrip
 import com.example.mosim.data.place.PlaceCandidate
 import com.example.mosim.data.place.PlaceKind
@@ -61,6 +63,13 @@ class EscortViewModel(
 
     private var cachedCapabilities: CabinCapabilities? = null
     private var nextNoticeId = 0L
+    private var nextProposalId = 0L
+
+    /** 경유지로 실제 추가에 성공한 장소. G-1 요약에 쓴다. 실패한 요청은 넣지 않는다. */
+    private val addedWaypoints = mutableListOf<String>()
+
+    /** 동승자 음성 요청을 처리한 횟수. G-1 요약에 쓴다. */
+    private var voiceRequestCount = 0
 
     /** 지연을 비교할 기준 도착 시각. 제안에 답하면 그때 시각으로 다시 잡아 같은 지연을 두 번 묻지 않는다. */
     private var baselineEta: LocalTime? = null
@@ -85,28 +94,38 @@ class EscortViewModel(
 
     /** F-1 "○○ 경유". 경유지 추가가 성공해야 함께 처리할 설정을 실행한다. */
     fun acceptProposal() {
-        val proposal = mutableState.value.proposal ?: return
-        if (!proposal.canAddWaypoint) return
+        viewModelScope.launch { acceptProposalAndWait() }
+    }
+
+    /**
+     * [acceptProposal]과 같은 일을 하되 결과를 기다려 돌려준다.
+     * F-1 화면이 "요청 중 → 성공/실패"를 보여 주려면 결과가 필요해서 둔다.
+     * **true는 내비가 경유지 추가를 받아들였다는 뜻이다.** 실패를 성공으로 바꾸지 않는다.
+     */
+    suspend fun acceptProposalAndWait(): Boolean {
+        val proposal = mutableState.value.proposal ?: return false
+        if (!proposal.canAddWaypoint) return false
         updateProposal { it.copy(isSubmitting = true, errorMessage = null) }
 
-        viewModelScope.launch {
-            val place = proposal.place
-            when (val result = tripSource.addWaypoint(place.name, place.location)) {
-                is SourceResult.Success -> {
-                    proposal.bundledActions.forEach { runBundledAction(it) }
-                    closeProposal()
-                    report(
-                        "경유지 추가: ${place.name}",
-                        ActionOutcome.SUCCEEDED,
-                        EscortMessages.waypointAdded(place.name),
-                    )
+        val place = proposal.place
+        return when (val result = tripSource.addWaypoint(place.name, place.location)) {
+            is SourceResult.Success -> {
+                addedWaypoints += place.name
+                proposal.bundledActions.forEach { runBundledAction(it) }
+                closeProposal()
+                report(
+                    "경유지 추가: ${place.name}",
+                    ActionOutcome.SUCCEEDED,
+                    EscortMessages.waypointAdded(place.name),
+                )
+                true
+            }
+            is SourceResult.Failure -> {
+                record("경유지 추가: ${place.name}", ActionOutcome.FAILED)
+                updateProposal {
+                    it.copy(isSubmitting = false, errorMessage = EscortMessages.failure(result.reason))
                 }
-                is SourceResult.Failure -> {
-                    record("경유지 추가: ${place.name}", ActionOutcome.FAILED)
-                    updateProposal {
-                        it.copy(isSubmitting = false, errorMessage = EscortMessages.failure(result.reason))
-                    }
-                }
+                false
             }
         }
     }
@@ -117,6 +136,75 @@ class EscortViewModel(
         if (proposal.isSubmitting) return
         record("경유 제안 거절: ${proposal.place.name}", ActionOutcome.SKIPPED)
         closeProposal()
+    }
+
+    /**
+     * F-2 화면이 넘긴 최종 인식 문장 하나를 처리한다.
+     *
+     * 장소 요청이면 화면(F-3)에서 후보를 고르게 [VoiceRouting.SearchPlaces]를 돌려주고,
+     * 그 밖의 명령은 여기서 실행한 뒤 결과를 E-1 토스트로 알린다([VoiceRouting.Handled]).
+     * 해석하지 못한 문장도 Handled이며 성공으로 처리하지 않는다(안내 문구만 바뀐다).
+     */
+    suspend fun handleVoiceText(text: String): VoiceRouting {
+        voiceRequestCount++
+        return when (VoiceCommandParser.parse(text)) {
+            is VoiceCommand.FindPlace -> VoiceRouting.SearchPlaces(text)
+            else -> {
+                handleSpeech(text)
+                VoiceRouting.Handled(mutableState.value.notice?.message)
+            }
+        }
+    }
+
+    /**
+     * F-3이 쓰는 장소 검색이다. E-1의 음성 제안과 같은 경로(현재 위치 + PlaceSearchSource)를 쓴다.
+     * 장소 종류를 못 알아들으면 검색하지 않고 이유를 돌려준다.
+     */
+    suspend fun searchPlacesFor(query: String): PlaceSearchOutcome {
+        val kind = (VoiceCommandParser.parse(query) as? VoiceCommand.FindPlace)?.kind
+            ?: return PlaceSearchOutcome(null, null, EscortMessages.NOT_UNDERSTOOD)
+        val location = when (val result = tripSource.currentLocation()) {
+            is SourceResult.Success -> result.value.also { lastSearchOrigin = it }
+            is SourceResult.Failure -> return PlaceSearchOutcome(null, null, EscortMessages.LOCATION_UNAVAILABLE)
+        }
+        return when (val result = placeSearch.searchNearby(kind, location, SEARCH_RADIUS_METERS)) {
+            is SourceResult.Success -> PlaceSearchOutcome(location, result.value, null)
+            is SourceResult.Failure -> PlaceSearchOutcome(location, null, EscortMessages.failure(result.reason))
+        }
+    }
+
+    /**
+     * F-3에서 고른 장소를 경유지로 추가한다. **실제로 성공했을 때만 true다.**
+     * 실패는 이유를 토스트로 알리고 false를 돌려준다. 화면은 다시 시도하거나 취소할 수 있다.
+     */
+    suspend fun addWaypointAt(name: String, location: GeoPoint): Boolean =
+        when (val result = tripSource.addWaypoint(name, location)) {
+            is SourceResult.Success -> {
+                addedWaypoints += name
+                report("경유지 추가: $name", ActionOutcome.SUCCEEDED, EscortMessages.waypointAdded(name))
+                true
+            }
+            is SourceResult.Failure -> {
+                record("경유지 추가: $name", ActionOutcome.FAILED)
+                showNotice(EscortMessages.failure(result.reason))
+                false
+            }
+        }
+
+    /** 도착했다. 이번 에스코트에서 실제로 한 일만 모아 G-1이 읽을 자리에 남긴다. */
+    private fun finishEscort() {
+        val state = mutableState.value
+        EscortSession.summary = EscortSummary(
+            passengerName = trip.passenger.name,
+            destinationName = trip.destinationName,
+            waypointNames = addedWaypoints.toList(),
+            autoAdjustCount = state.history.count {
+                it.outcome == ActionOutcome.SUCCEEDED && !it.description.startsWith("경유지 추가")
+            },
+            voiceRequestCount = voiceRequestCount,
+            isSimulated = tripIsSimulated || state.history.any { it.isSimulated },
+        )
+        mutableState.update { it.copy(arrived = true) }
     }
 
     // ---- 음성 명령 ----
@@ -250,6 +338,7 @@ class EscortViewModel(
         val place = (if (kind == PlaceKind.REST_AREA) findRestPlace() else findNearestPlace(kind)) ?: return
         showProposal(
             ReplanProposal(
+                id = "voice-${++nextProposalId}",
                 reason = ReplanReason.VoiceRequest(spokenText),
                 message = EscortMessages.voicePlaceProposal(kind, place.name),
                 place = place,
@@ -262,6 +351,7 @@ class EscortViewModel(
 
     private fun onTripStatus(status: TripStatus?) {
         roadType = status?.roadType
+        if (status?.arrived == true && !mutableState.value.arrived) finishEscort()
         mutableState.update {
             it.copy(
                 eta = status?.eta,
@@ -304,6 +394,7 @@ class EscortViewModel(
         }
         showProposal(
             ReplanProposal(
+                id = "delay-${++nextProposalId}",
                 reason = ReplanReason.Delay(plannedEta, delayedEta, baselineMinutes, delayedMinutes),
                 message = EscortMessages.restProposal(passenger.name),
                 place = place,
@@ -472,6 +563,7 @@ class EscortViewModel(
         val cabin = cabinControl.state.value
         val status = tripSource.tripStatus.value
         return EscortUiState(
+            isSimulated = tripIsSimulated,
             passengerName = trip.passenger.name,
             destinationName = trip.destinationName,
             boardedAt = trip.boardedAt,
@@ -497,3 +589,23 @@ class EscortViewModel(
         const val SEARCH_RADIUS_METERS = 2_000
     }
 }
+
+/** [EscortViewModel.handleVoiceText]의 결과. 화면이 다음에 무엇을 할지 정한다. */
+sealed interface VoiceRouting {
+    /** 장소 요청이다. [query]를 검색어로 F-3을 연다. */
+    data class SearchPlaces(val query: String) : VoiceRouting
+
+    /** 여기서 처리를 끝냈다. [message]는 화면에 이미 토스트로 뜬 안내이며 없을 수 있다. */
+    data class Handled(val message: String?) : VoiceRouting
+}
+
+/**
+ * F-3에 넘길 장소 검색 결과다.
+ * [places]가 null이면 검색하지 못한 것이고 [failureMessage]에 이유가 있다.
+ * 비어 있는 목록은 "조건에 맞는 곳이 없음"이며 실패가 아니다.
+ */
+data class PlaceSearchOutcome(
+    val origin: GeoPoint?,
+    val places: List<PlaceCandidate>?,
+    val failureMessage: String?,
+)

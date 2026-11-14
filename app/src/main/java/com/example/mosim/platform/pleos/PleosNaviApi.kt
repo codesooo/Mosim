@@ -4,6 +4,7 @@ import ai.pleos.playground.navi.constants.NaviErrorCode
 import ai.pleos.playground.navi.constants.WaypointCmdType
 import ai.pleos.playground.navi.constants.WaypointIndex
 import ai.pleos.playground.navi.data.CurrentLocationInfo
+import ai.pleos.playground.navi.data.DestinationArrivedInfo
 import ai.pleos.playground.navi.data.DestinationInfo
 import ai.pleos.playground.navi.data.RequestWaypointInfo
 import ai.pleos.playground.navi.data.RouteInfo
@@ -17,7 +18,10 @@ import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.filterIsInstance
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withTimeoutOrNull
 
@@ -43,6 +47,7 @@ class PleosNaviApi(
         data class RouteStarted(val info: RouteStartInfo) : NaviEvent
         data class WaypointChanged(val info: WaypointChangedInfo) : NaviEvent
         data class Error(val code: NaviErrorCode) : NaviEvent
+        data object Arrived : NaviEvent
     }
 
     /** 콜백은 SDK 스레드에서 온다. 버퍼를 두어 받는 쪽이 늦어도 tryEmit이 버리지 않게 한다. */
@@ -71,10 +76,17 @@ class PleosNaviApi(
             events.tryEmit(NaviEvent.WaypointChanged(waypointChangedInfo))
         }
 
+        override fun onDestinationArrived(destinationArrivedInfo: DestinationArrivedInfo) {
+            events.tryEmit(NaviEvent.Arrived)
+        }
+
         override fun onError(errorCode: NaviErrorCode) {
             events.tryEmit(NaviEvent.Error(errorCode))
         }
     }
+
+    /** 목적지 도착 이벤트만 걸러서 내보낸다. 도착 뒤에도 같은 이벤트가 또 오면 그대로 흘린다. */
+    override val arrivals: Flow<Unit> = events.filterIsInstance<NaviEvent.Arrived>().map { }
 
     /** 앱(에스코트 흐름) 시작 때 한 번 부른다. 연결 전 요청은 연결될 때까지 기다린다. */
     fun connect() {

@@ -65,6 +65,13 @@ class MockTripSource(
         return SourceResult.Success(Unit)
     }
 
+    /** Mock 전용. 목적지 도착 신호를 흉내 낸다(NaviHelper onDestinationArrived). */
+    fun simulateArrival() {
+        mutableStatus.update { current ->
+            current?.copy(remainDistanceMeters = 0, remainMinutes = 0, arrived = true)
+        }
+    }
+
     /** Mock 전용. 정체로 도착이 [extraMinutes]분 늦어진 상황을 만든다. */
     fun simulateTrafficDelay(extraMinutes: Long) {
         mutableStatus.update { current ->

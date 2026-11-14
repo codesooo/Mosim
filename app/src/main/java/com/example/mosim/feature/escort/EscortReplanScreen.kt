@@ -291,6 +291,7 @@ private const val RIGHT_WEIGHT = 844f
 
 // Mock: 피그마 F-1 예시 값
 private val previewProposal = ReplanProposal(
+    id = "preview-delay",
     reason = ReplanReason.Delay(
         plannedEta = LocalTime.of(9, 12),
         delayedEta = LocalTime.of(9, 42),

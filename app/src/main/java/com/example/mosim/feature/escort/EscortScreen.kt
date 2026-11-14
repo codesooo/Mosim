@@ -8,6 +8,7 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
@@ -54,16 +55,25 @@ import java.time.LocalTime
 fun EscortScreen(
     viewModel: EscortViewModel,
     onProposal: () -> Unit,
+    onVoiceRequest: () -> Unit = {},
+    onArrived: () -> Unit = {},
+    interactionAllowed: Boolean = false,
 ) {
     val state by viewModel.uiState.collectAsState()
     RequestNotificationPermission()
+    // 목적지 도착은 내비가 알려 준다. 도착하면 G-1로 넘긴다. 하차 감지는 아직 없다 [확인 필요].
+    LaunchedEffect(state.arrived) { if (state.arrived) onArrived() }
     // 제안은 지연 감지나 음성 요청으로 화면 밖에서 생긴다. 생기면 F-1로 넘긴다.
     // E-1로 돌아왔을 때 제안이 남아 있으면 다시 넘긴다(키가 같아도 화면에 다시 들어오면 효과가 새로 돈다).
     val hasProposal = state.proposal != null
     LaunchedEffect(hasProposal) {
         if (hasProposal) onProposal()
     }
-    EscortContent(state = state)
+    EscortContent(
+        state = state,
+        // 주행 중 조작 제한이 걸려 있으면 음성 요청도 시작하지 않는다(탭 한 번도 조작이다).
+        onVoiceRequest = if (interactionAllowed) onVoiceRequest else null,
+    )
 }
 
 /**
@@ -82,17 +92,17 @@ private fun RequestNotificationPermission() {
  * 좁은 창에서는 내비를 옆에 두고 흘끗 보는 용도라, 같은 정보를 세로로 쌓아 한 열로 보여 준다.
  */
 @Composable
-fun EscortContent(state: EscortUiState) {
+fun EscortContent(state: EscortUiState, onVoiceRequest: (() -> Unit)? = null) {
     BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
         when (EscortLayout.of(maxWidth.value)) {
-            EscortLayout.WIDE -> WideEscortContent(state = state)
-            EscortLayout.COMPACT -> CompactEscortContent(state = state)
+            EscortLayout.WIDE -> WideEscortContent(state = state, onVoiceRequest = onVoiceRequest)
+            EscortLayout.COMPACT -> CompactEscortContent(state = state, onVoiceRequest = onVoiceRequest)
         }
     }
 }
 
 @Composable
-private fun WideEscortContent(state: EscortUiState) {
+private fun WideEscortContent(state: EscortUiState, onVoiceRequest: (() -> Unit)?) {
     MosimAppContainer(
         title = "에스코트 모드",
         subtitle = EscortMessages.escortSubtitle(state.boardedAt, state.passengerName),
@@ -117,7 +127,7 @@ private fun WideEscortContent(state: EscortUiState) {
             ) {
                 CabinCards(state = state)
                 Spacer(modifier = Modifier.weight(1f))
-                VoiceStandbyPill()
+                VoiceStandbyPill(onVoiceRequest)
             }
         }
     }
@@ -125,7 +135,7 @@ private fun WideEscortContent(state: EscortUiState) {
 
 /** 제목 줄에 토스트를 붙이면 좁은 창에서 제목이 밀려 잘린다. 그래서 토스트를 제목 아래 한 줄로 내린다. */
 @Composable
-private fun CompactEscortContent(state: EscortUiState) {
+private fun CompactEscortContent(state: EscortUiState, onVoiceRequest: (() -> Unit)?) {
     MosimAppContainer(
         title = "에스코트 모드",
         subtitle = EscortMessages.escortSubtitle(state.boardedAt, state.passengerName),
@@ -147,7 +157,7 @@ private fun CompactEscortContent(state: EscortUiState) {
                     CabinTile(label = label, value = value, modifier = Modifier.weight(1f))
                 }
             }
-            VoiceStandbyPill()
+            VoiceStandbyPill(onVoiceRequest)
         }
     }
 }
@@ -194,10 +204,19 @@ private fun CabinTile(label: String, value: String, modifier: Modifier = Modifie
     }
 }
 
+/**
+ * 동승자 음성 요청을 시작하는 자리다.
+ *
+ * 호출어로 늘 듣고 있지 않는 이유: 상시 인식 허용 여부가 확인되지 않았고(docs/design/escort.md 11장 #1),
+ * 마이크를 계속 점유하게 된다. 그래서 탭 한 번으로 F-2를 연다. 주행 제한이 걸리면 누를 수 없다.
+ */
 @Composable
-private fun VoiceStandbyPill() {
-    // [확인 필요] 실제 듣기 상태는 STT 담당과 합의 후 반영한다(docs/design/escort.md 11장 #1).
-    StatusPill(text = "동승자 음성 요청 대기 중", modifier = Modifier.fillMaxWidth())
+private fun VoiceStandbyPill(onVoiceRequest: (() -> Unit)?) {
+    val base = Modifier.fillMaxWidth()
+    StatusPill(
+        text = if (onVoiceRequest == null) "동승자 음성 요청 대기 중" else "동승자 음성 요청 · 눌러서 말하기",
+        modifier = if (onVoiceRequest == null) base else base.clickable(onClick = onVoiceRequest),
+    )
 }
 
 /** notice가 null이 된 뒤 사라지는 동안에도 마지막 문구를 보여 주려고 기억해 둔다. */

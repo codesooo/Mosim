@@ -15,6 +15,20 @@
             </intent-filter>
         </receiver>
 
+        <!--
+            디버그 빌드 전용. 에뮬레이터에서는 차가 움직이지 않아 도착·정체 신호가 오지 않는다.
+            시연과 손 테스트에서 Mock 경로 소스에만 그 사건을 넣는다.
+        -->
+        <receiver
+            android:name=".debug.DebugTripReceiver"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="com.example.mosim.DEBUG_ARRIVE" />
+                <action android:name="com.example.mosim.DEBUG_DELAY" />
+                <action android:name="com.example.mosim.DEBUG_MOCK_TRIP" />
+            </intent-filter>
+        </receiver>
+
         <activity
             android:name=".feature.planrevision.FScreenDemoActivity"
             android:exported="true"

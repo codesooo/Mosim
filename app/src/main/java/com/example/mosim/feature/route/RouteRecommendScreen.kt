@@ -29,6 +29,8 @@ fun RouteRecommendScreen(
     destination: String = "서울대병원 본관",
     onEditPickup: () -> Unit = {},
     onEditDestination: () -> Unit = {},
+    /** 출발 전 점검(B-1)으로 간다. 연결되지 않은 Preview에서는 null이라 안내만 띄운다. */
+    onStartCheck: (() -> Unit)? = null,
 ) {
     val context = LocalContext.current
     fun showNotice(message: String) {
@@ -47,7 +49,12 @@ fun RouteRecommendScreen(
                     SettingRow("약속 시간", "오늘 08:30") { showNotice("약속 시간 변경은 준비 중입니다.") }
                 }
                 Spacer(Modifier.height(24.dp))
-                PleosButton("출발 전 점검", onClick = { showNotice("출발 전 점검 화면은 준비 중입니다.") }, type = PleosButtonType.Filled, modifier = Modifier.fillMaxWidth())
+                PleosButton(
+                    text = "출발 전 점검",
+                    onClick = onStartCheck ?: { showNotice("출발 전 점검 화면은 준비 중입니다.") },
+                    type = PleosButtonType.Filled,
+                    modifier = Modifier.fillMaxWidth(),
+                )
             }
             MapPlaceholder(Modifier.weight(880f).fillMaxHeight(), "경로 미리보기 · 현재 위치 → 픽업 → 목적지")
         }

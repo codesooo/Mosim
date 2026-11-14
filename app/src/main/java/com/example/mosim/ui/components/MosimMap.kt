@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableIntStateOf
@@ -76,6 +77,11 @@ fun MosimMap(
     markers: List<MapMarker>,
     placeholderText: String,
     modifier: Modifier = Modifier,
+    /**
+     * 가운데로 옮겨 둘 점. 목록에서 고른 장소를 지도에서도 보여 줄 때 쓴다(F-3).
+     * null이면 점 전체가 보이도록 맞춘다.
+     */
+    focus: GeoPoint? = null,
 ) {
     var hasError by remember { mutableStateOf(false) }
     if (LocalInspectionMode.current || !MosimApplication.isKakaoMapAvailable || hasError) {
@@ -90,6 +96,8 @@ fun MosimMap(
     // 점이 바뀌면 지도를 새로 만든다. F-1은 제안 하나에 점이 고정이라 이 방식이 가장 단순하다.
     key(markers) {
         val mapView = remember { MapView(context) }
+        // 고른 장소가 바뀌면 지도를 다시 만들지 않고 카메라만 옮긴다.
+        var readyMap by remember { mutableStateOf<KakaoMap?>(null) }
         // onMapReady는 배치가 끝난 뒤 불리므로 그때는 아래에서 잰 값이 들어 있다.
         var fitPaddingPx by remember { mutableIntStateOf(0) }
         val lifecycleOwner = LocalLifecycleOwner.current
@@ -108,6 +116,7 @@ fun MosimMap(
                     override fun onMapReady(kakaoMap: KakaoMap) {
                         drawMarkers(kakaoMap, markers)
                         moveCamera(kakaoMap, MapCamera.of(markers), fitPaddingPx)
+                        readyMap = kakaoMap
                     }
                 },
             )
@@ -124,6 +133,10 @@ fun MosimMap(
                 lifecycleOwner.lifecycle.removeObserver(observer)
                 mapView.finish()
             }
+        }
+        LaunchedEffect(readyMap, focus, fitPaddingPx) {
+            val map = readyMap ?: return@LaunchedEffect
+            if (focus != null) moveCamera(map, MapCamera.Center(focus), fitPaddingPx)
         }
         BoxWithConstraints(modifier = modifier.clip(MosimShape.Card)) {
             // 지도 크기는 배치(넓은 창·좁은 창)마다 다르다. SDK가 px를 받아 제약의 px 값을 그대로 쓴다.

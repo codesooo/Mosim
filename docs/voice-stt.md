@@ -41,6 +41,11 @@ NavHost의 `onSpeechRecognized` 인자로도 외부 결과 처리기를 연결�
 
 ## 권한
 
+> **2026-11-15 갱신.** `android.permission.RECORD_AUDIO`를 선언하고 F-2 진입 때 런타임으로 요청한다.
+> 이 선언과 승인이 없으면 Speech Service가 녹음 op를 열지 못해 `request()` 경로에 음성이 들어오지 않는다.
+> 에뮬레이터 logcat에서 `startRecordAudioOp(... ) - result: 0`과 마이크 표시를 확인했다.
+> 공식 STT 권한 가이드에는 이 안내가 없다 [확인 필요].
+
 공식 가이드가 지정한 `pleos.car.permission.STT_SERVICE`를 앱 Manifest에 선언한다.
 차량 마이크는 Speech Service가 사용하며, 이번 구현은 AudioRecord로 앱에서 직접 녹음하지 않는다.
 공식 가이드와 SDK AAR 매니페스트에는 앱의 RECORD_AUDIO 런타임 요청이 명시되지 않아 임의로 추가하지 않았다.
@@ -163,3 +168,14 @@ adb logcat -d -s STTCHECK:*
   마이크 사용 표시까지는 뜨지만, 실제 발화 확인은 사람이 해야 한다.
   절차: `VoiceDemoActivity` → `Pleos STT` → 한국어 발화 → 화면 텍스트와 최종 콜백 확인.
 - Compose 기기 테스트(`connectedDebugAndroidTest`)는 이번에도 실행하지 않았다.
+
+## 2026-11-15 통합 후 흐름
+
+E-1의 "동승자 음성 요청"을 누르면 F-2로 들어간다. 최종 인식 문장은
+`EscortViewModel.handleVoiceText`로 가고, 장소 요청이면 F-3, 그 밖의 명령은 E가 실행한 뒤 E-1로 돌아간다.
+자세한 계약은 `integration-contracts.md` 3절에 있다.
+
+- 최종 결과 없이 화면을 넘기지 않는다. 타이머로 F-3에 가는 임시 동작은 제거했다.
+- 화면 진입 시 TTS를 멈추고 인식을 시작한다.
+- `VoiceScreen`의 `onSpeechRecognized`, `analyzeRequest`, `onAnalysisResult` 계약은 그대로다.
+- **여전히 미검증**: 사람이 차량 마이크에 말해서 인식되는 경로.

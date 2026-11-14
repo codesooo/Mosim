@@ -3,6 +3,7 @@ package com.example.mosim.data.mock
 import com.example.mosim.feature.waypoint.PlaceSearchResult
 import com.example.mosim.feature.waypoint.PlaceSearchSource
 import com.example.mosim.feature.waypoint.PlaceUiModel
+import com.example.mosim.platform.pleos.GeoPoint
 import kotlinx.coroutines.delay
 
 /**
@@ -25,8 +26,18 @@ class MockWaypointSearchSource(
     }
 }
 
+// Mock 좌표다. 실제 장소가 아니라 MockTripSource 기본 위치(서울 도심) 근처의 임의 값이다.
 fun mockPlaces() = listOf(
-    PlaceUiModel("mock-cafe-a", "카페 A", "0.4km · 추가 이동 3분", isMock = true),
-    PlaceUiModel("mock-cafe-b", "카페 B", "0.7km · 추가 이동 5분", isMock = true),
-    PlaceUiModel("mock-cafe-c", "카페 C", "0.9km · 추가 이동 6분", isMock = true),
+    PlaceUiModel(
+        "mock-cafe-a", "카페 A", "0.4km · 추가 이동 3분", isMock = true,
+        location = GeoPoint(latitude = 37.5690, longitude = 126.9800),
+    ),
+    PlaceUiModel(
+        "mock-cafe-b", "카페 B", "0.7km · 추가 이동 5분", isMock = true,
+        location = GeoPoint(latitude = 37.5720, longitude = 126.9760),
+    ),
+    PlaceUiModel(
+        "mock-cafe-c", "카페 C", "0.9km · 추가 이동 6분", isMock = true,
+        location = GeoPoint(latitude = 37.5610, longitude = 126.9850),
+    ),
 )

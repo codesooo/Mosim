@@ -1,6 +1,7 @@
 package com.example.mosim.feature.planrevision
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.height
@@ -41,6 +42,8 @@ internal fun PlanRevisionLayout(
     onStopSpeaking: () -> Unit,
     modifier: Modifier = Modifier,
     interactionAllowed: Boolean = true,
+    /** 지도. 좌표를 모르는 제안에서는 null이라 카드 두 장만 그린다. */
+    mapContent: (@Composable () -> Unit)? = null,
 ) {
     val suggestion = state.suggestion
     val canRequest = interactionAllowed &&
@@ -85,6 +88,10 @@ internal fun PlanRevisionLayout(
                 interactionAllowed = interactionAllowed,
                 modifier = Modifier.weight(1f).fillMaxHeight(),
             )
+            // 지도는 카드와 같은 폭을 쓴다. 좌표가 없으면 이 자리를 아예 두지 않는다.
+            mapContent?.let { map ->
+                Box(modifier = Modifier.weight(1f).fillMaxHeight()) { map() }
+            }
         }
     }
 }

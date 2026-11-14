@@ -32,8 +32,10 @@
 
 - Android 앱, Kotlin + Jetpack Compose + Material3, 단일 `app` 모듈.
 - 확정 버전은 `README.md`의 표를 따른다(JDK 17, AGP 8.13.0, Kotlin 2.2.20, compileSdk 36, targetSdk 35, minSdk 28).
-- 화면: 이동 경로 확인용 **임시 화면**만 있다. 메인 화면의 버튼 네 개로 각 화면에 들어간다.
-- 차량 데이터: 전부 Mock이다.
+- 화면: A~G 화면이 모두 있고 2026-11-15 통합으로 A→G가 한 흐름으로 이어진다(`docs/integration-contracts.md`).
+  개발용 HOME 메뉴는 각 화면 단독 진입용으로 남아 있다.
+- 차량 데이터: 공조 온도만 실제 Vehicle SDK를 쓰고 나머지는 Mock이다.
+  경로·경유지·현재 위치는 NaviHelper(`PleosTripSource`), 장소 검색은 카카오 로컬을 쓴다(키가 있을 때).
   - `platform/pleos/VehicleStatusSource.kt` — 화면이 보는 인터페이스
   - `data/mock/MockVehicleStatusSource.kt` — 현재 쓰는 Mock
   - `platform/pleos/PleosVehicleStatusSource.kt` — 실제 SDK 연동 자리, 비어 있음

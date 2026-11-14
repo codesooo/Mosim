@@ -1,10 +1,12 @@
 package com.example.mosim.feature.waypoint
 
+import com.example.mosim.platform.pleos.GeoPoint
+
 /**
  * F-3이 보여 주는 장소 한 곳. 화면에 그릴 수 있게 이미 다듬어진 문자열만 담는다.
  *
- * 좌표를 넣지 않은 이유: 경유지 추가는 NaviHelper 담당자 몫이고, 그쪽이 쓰는 좌표 타입이 아직 정해지지 않았다.
- * [externalId]로 원본 검색 결과를 되찾아 쓰라는 뜻이다.
+ * [location]은 지도 표시와 경유지 추가에 쓴다. 검색 결과에 좌표가 없으면 null이고,
+ * 그때는 지도에 찍지 않는다. 원본 검색 결과는 [externalId]로 되찾는다.
  */
 data class PlaceUiModel(
     /** 검색 모듈이 만든 식별자. 선택 결과를 돌려줄 때 그대로 실어 보낸다. */
@@ -15,6 +17,8 @@ data class PlaceUiModel(
     /** 이름 옆 작은 태그. 예: "드라이브스루" */
     val tag: String? = null,
     val isMock: Boolean = false,
+    /** 지도 표시·경유지 추가에 쓰는 좌표. 모르면 null이다. */
+    val location: GeoPoint? = null,
 )
 
 /** 장소 검색 결과. 화면이 다뤄야 하는 경우를 전부 나눠 둔다. */

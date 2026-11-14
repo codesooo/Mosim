@@ -1,6 +1,5 @@
 package com.example.mosim.feature.charging
 
-import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -22,12 +21,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.Path
-import androidx.compose.ui.graphics.StrokeCap
-import androidx.compose.ui.graphics.StrokeJoin
-import androidx.compose.ui.graphics.drawscope.DrawScope
-import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
@@ -35,7 +28,10 @@ import androidx.compose.ui.unit.dp
 import com.example.mosim.ui.components.ChipSize
 import com.example.mosim.ui.components.ChipTone
 import com.example.mosim.ui.components.InfoCard
-import com.example.mosim.ui.components.MapPlaceholder
+import com.example.mosim.platform.pleos.GeoPoint
+import com.example.mosim.ui.components.MapMarker
+import com.example.mosim.ui.components.MapMarkerKind
+import com.example.mosim.ui.components.MosimMap
 import com.example.mosim.ui.components.MosimAppContainer
 import com.example.mosim.ui.components.StatusChip
 import com.example.mosim.ui.components.pleos.PleosButton
@@ -57,14 +53,13 @@ import com.example.mosim.ui.theme.strong
 
 /**
  * 충전소 후보 하나.
- * mapX/mapY는 Mock 지도 안에서의 상대 위치(0~1)다. 실제 위경도가 아니다.
+ * [location]은 지도에 찍을 좌표다. **Mock 값이며 실제 충전소 위치가 아니다.**
  */
 private data class ChargingStation(
     val name: String,
     val description: String,
     val vacancy: String,
-    val mapX: Float,
-    val mapY: Float,
+    val location: GeoPoint,
 )
 
 // Mock: 피그마 B-2 예시 값.
@@ -76,22 +71,19 @@ private val MockStations = listOf(
         name = "EV 스테이션 강남",
         description = "경유 +4분 · 급속 200kW",
         vacancy = "빈 자리 2/4",
-        mapX = 0.28f,
-        mapY = 0.62f,
+        location = GeoPoint(latitude = 37.4979, longitude = 127.0276),
     ),
     ChargingStation(
         name = "역삼 공영주차장 충전소",
         description = "경유 +7분 · 급속 100kW",
         vacancy = "빈 자리 1/2",
-        mapX = 0.52f,
-        mapY = 0.26f,
+        location = GeoPoint(latitude = 37.5006, longitude = 127.0366),
     ),
     ChargingStation(
         name = "서초 이마트 충전소",
         description = "경유 +11분 · 급속 100kW",
         vacancy = "빈 자리 3/6",
-        mapX = 0.72f,
-        mapY = 0.74f,
+        location = GeoPoint(latitude = 37.4923, longitude = 127.0292),
     ),
 )
 
@@ -104,10 +96,9 @@ private val MockSummaryChipTone = ChipTone.Normal
 // 피그마 B-2는 첫 번째 충전소가 선택된 상태다.
 private const val DefaultSelectedIndex = 0
 
-// Mock 지도 위 현재 차량 위치, 픽업지, 경로가 지나는 점 (상대 좌표 0~1).
-private val MockCarPosition = Offset(0.14f, 0.88f)
-private val MockPickupPosition = Offset(0.84f, 0.14f)
-private val MockRoutePoints = listOf(MockCarPosition, Offset(0.30f, 0.66f), Offset(0.40f, 0.30f), MockPickupPosition)
+// Mock 좌표다. 실제 차량 위치·픽업지가 아니다. 현재 위치는 NaviHelper, 픽업지는 A-3에서 와야 한다 [확인 필요].
+private val MockCarLocation = GeoPoint(latitude = 37.4951, longitude = 127.0188)
+private val MockPickupLocation = GeoPoint(latitude = 37.4981, longitude = 127.0276)
 
 /**
  * 건너뛰기, 경유지 추가는 둘 다 B-3(에스코트 계획)으로 간다. 이동은 호출부(MosimNavHost)가 정한다.
@@ -164,7 +155,7 @@ fun ChargingStationSelectScreen(
                     )
                 }
             }
-            MockStationMap(
+            StationMap(
                 selectedIndex = selectedIndex,
                 modifier = Modifier
                     .weight(1f)
@@ -234,49 +225,26 @@ private fun SummaryCard(text: String, chipText: String, chipTone: ChipTone) {
 }
 
 /**
- * Mock 지도. MapPlaceholder 위에 경로선, 현재 차량, 픽업지, 충전소 3곳 점만 그린다.
- * 지도 SDK를 쓰지 않으며 위치는 MockStations의 상대 좌표다. 지도 연동 방식이 정해지면 통째로 교체한다. [확인 필요]
+ * 충전소 지도. 공통 [MosimMap](카카오맵)을 쓰고 현재 위치·픽업지·충전소 3곳을 찍는다.
+ * 고른 충전소를 가운데로 옮긴다. 경로선은 아직 그리지 않는다(NaviHelper 경로 좌표 미연동) [확인 필요].
+ * 지도 키가 없으면 MosimMap이 알아서 자리 표시만 그린다.
  */
 @Composable
-private fun MockStationMap(selectedIndex: Int, modifier: Modifier = Modifier) {
-    Box(modifier = modifier) {
-        MapPlaceholder(modifier = Modifier.fillMaxSize(), text = "지도 · 경로 + 충전소 3곳")
-        Canvas(modifier = Modifier.fillMaxSize()) {
-            val route = Path().apply {
-                MockRoutePoints.forEachIndexed { i, p ->
-                    val o = p.toCanvas(this@Canvas)
-                    if (i == 0) moveTo(o.x, o.y) else lineTo(o.x, o.y)
-                }
-            }
-            drawPath(
-                path = route,
-                color = PleosColor.InformativePositive,
-                style = Stroke(width = 10.dp.toPx(), cap = StrokeCap.Round, join = StrokeJoin.Round),
-            )
-
-            MockStations.forEachIndexed { index, station ->
-                val center = Offset(station.mapX, station.mapY).toCanvas(this)
-                if (index == selectedIndex) {
-                    drawCircle(PleosColor.SurfaceBasic, radius = 30.dp.toPx(), center = center)
-                    drawCircle(PleosColor.ButtonFilledEnabled, radius = 24.dp.toPx(), center = center)
-                } else {
-                    drawCircle(PleosColor.SurfaceBasic, radius = 20.dp.toPx(), center = center)
-                    drawCircle(PleosColor.Basic400, radius = 15.dp.toPx(), center = center)
-                }
-            }
-
-            val pickup = MockPickupPosition.toCanvas(this)
-            drawCircle(PleosColor.SurfaceBasic, radius = 22.dp.toPx(), center = pickup)
-            drawCircle(MosimColor.NormalAccent, radius = 16.dp.toPx(), center = pickup)
-
-            val car = MockCarPosition.toCanvas(this)
-            drawCircle(PleosColor.SurfaceBasic, radius = 22.dp.toPx(), center = car)
-            drawCircle(PleosColor.InformativePositive, radius = 16.dp.toPx(), center = car)
-        }
-    }
+private fun StationMap(selectedIndex: Int, modifier: Modifier = Modifier) {
+    MosimMap(
+        markers = stationMarkers(),
+        placeholderText = "지도 · 현재 위치 + 픽업지 + 충전소 3곳",
+        focus = MockStations.getOrNull(selectedIndex)?.location,
+        modifier = modifier,
+    )
 }
 
-private fun Offset.toCanvas(scope: DrawScope) = Offset(x * scope.size.width, y * scope.size.height)
+private fun stationMarkers(): List<MapMarker> = buildList {
+    add(MapMarker(MockCarLocation, MapMarkerKind.CURRENT_LOCATION))
+    add(MapMarker(MockPickupLocation, MapMarkerKind.PLACE))
+    MockStations.forEach { add(MapMarker(it.location, MapMarkerKind.PLACE)) }
+}
+
 
 @Preview(name = "B-2 충전소 경유 선택", widthDp = 1700, heightDp = 1184)
 @Composable
