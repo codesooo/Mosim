@@ -16,8 +16,14 @@ class MosimNavigationTest {
     val composeRule = createAndroidComposeRule<MainActivity>()
 
     @Test
-    fun 메인에서_차량_상태_화면으로_이동한다() {
-        composeRule.onNodeWithText("차량 상태").performClick()
-        composeRule.onNodeWithText("Mock 데이터다. 실제 차량 값이 아니다.").assertIsDisplayed()
+    fun 메인에서_출발_전_점검_화면으로_이동한다() {
+        composeRule.onNodeWithText("출발 전 점검").performClick()
+        composeRule.onNodeWithText("픽업 전 충전이 필요합니다").assertIsDisplayed()
+    }
+
+    @Test
+    fun 메인에서_AI_제안_화면으로_이동한다() {
+        composeRule.onNodeWithText("AI 제안").performClick()
+        composeRule.onNodeWithText("이동 계획 수정").assertIsDisplayed()
     }
 }
