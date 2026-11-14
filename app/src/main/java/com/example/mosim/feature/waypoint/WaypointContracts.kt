@@ -32,7 +32,8 @@ sealed interface PlaceSearchResult {
  * 장소 검색 경계. **구현은 장소 검색 담당자 몫이다.**
  *
  * F-3은 이 인터페이스만 보고, 화면 안에서 직접 네트워크를 타지 않는다.
- * 지금은 `data/mock/MockPlaceSearchSource.kt`가 유일한 구현이다.
+ * 지금은 `data/mock/MockWaypointSearchSource.kt`가 유일한 구현이다.
+ * 에스코트가 쓰는 `data.place.PlaceSearchSource`(종류·좌표 검색)와는 이름만 같은 별개 인터페이스다.
  */
 interface PlaceSearchSource {
     /** [query]는 F-2가 인식한 문장이다. 실패를 예외로 던지지 말고 [PlaceSearchResult.Failed]로 돌려준다. */
