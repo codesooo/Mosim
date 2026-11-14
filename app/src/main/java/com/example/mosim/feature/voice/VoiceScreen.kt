@@ -150,10 +150,20 @@ fun VoiceScreen(
         beforeStart()
         model.start()
     }
-    // 권한 대화상자가 떠 있는 동안에는 세지 않는다. 승인 전에 시간이 흐르면 F-2를 보지도 못하고 넘어간다.
-    LaunchedEffect(model, autoAdvanceMillis, micGranted) {
+    /*
+     * 인식 결과가 없어도 다음 화면으로 넘기는 임시 장치다. 세는 기준이 중요하다.
+     *  - 준비 중(SDK 연결)이나 권한 대화상자 동안에는 세지 않는다. 말할 기회도 없이 넘어가기 때문이다.
+     *  - 듣기 시작한 뒤부터 세고, 말이 들어오면(부분 인식이 바뀌면) 처음부터 다시 센다.
+     *  - 오류로 끝났을 때는 문구를 읽을 시간만 주고 넘긴다.
+     */
+    LaunchedEffect(model, autoAdvanceMillis, micGranted, state.phase, state.text) {
         if (autoAdvanceMillis <= 0L || !micGranted) return@LaunchedEffect
-        delay(autoAdvanceMillis)
+        val wait = when (state.phase) {
+            VoicePhase.Listening -> autoAdvanceMillis
+            VoicePhase.Error -> ERROR_ADVANCE_MILLIS
+            else -> return@LaunchedEffect
+        }
+        delay(wait)
         if (!advanced.compareAndSet(false, true)) return@LaunchedEffect
         val query = state.text.trim().ifEmpty { fallbackQuery }
         model.cancel()
@@ -171,3 +181,5 @@ fun VoiceScreen(
     )
 }
 
+/** 오류 문구를 읽을 시간. 이 시간이 지나면 장소 후보 화면으로 넘어간다. */
+private const val ERROR_ADVANCE_MILLIS = 3_000L

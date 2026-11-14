@@ -27,7 +27,11 @@ class MockSpeechRecognizer(
             onEvent(SpeechEvent.Ready)
             delay(eventDelayMillis)
             onEvent(SpeechEvent.Listening)
-            delay(eventDelayMillis)
+            // 실제 SDK처럼 소리 크기를 먼저 몇 번 보낸다. 화면이 음량에 반응하는지 Mock으로도 본다.
+            repeat(MOCK_LEVEL_COUNT) {
+                delay(eventDelayMillis / MOCK_LEVEL_COUNT)
+                onEvent(SpeechEvent.Level(MOCK_LEVELS[it % MOCK_LEVELS.size]))
+            }
             if (failure != null) {
                 listener = null
                 onEvent(SpeechEvent.Failed(failure))
@@ -39,6 +43,11 @@ class MockSpeechRecognizer(
                 onEvent(SpeechEvent.Ended)
             }
         }
+    }
+
+    private companion object {
+        const val MOCK_LEVEL_COUNT = 4
+        val MOCK_LEVELS = listOf(0.2, 0.8, 0.5, 1.0)
     }
 
     override fun stop() {

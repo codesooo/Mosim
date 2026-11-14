@@ -73,7 +73,9 @@ class PleosSpeechRecognizer(
                 }
 
                 override fun onUpdatedEpdData(on: Long, off: Long) = Unit
-                override fun onUpdatedRms(rms: Double) = Unit
+
+                /** 소리 크기는 화면이 "마이크가 조용한지"를 보여 주는 데만 쓴다. */
+                override fun onUpdatedRms(rms: Double) = emit(session, SpeechEvent.Level(rms))
 
                 /** A piece boundary. The final for it still follows, so the utterance is not over. */
                 override fun onEndedRecognition() = Unit
