@@ -72,6 +72,12 @@ import com.example.mosim.platform.pleos.SpeechMode
 import com.example.mosim.platform.pleos.SpeechSynthesizer
 import kotlinx.coroutines.delay
 
+/**
+ * F-2에서 인식 결과를 기다리는 시간. 이 시간이 지나면 장소 후보(F-3)로 넘어간다.
+ * STT 앱 타임아웃 20초보다 짧게 둬서 시연이 오류 화면으로 끝나지 않게 한 임시 값이다.
+ */
+private const val VOICE_AUTO_ADVANCE_MILLIS = 8_000L
+
 /** 흐름 A와 B는 독립 진입한다. 외부 함수가 없으면 미연결로 표시하며 성공을 만들지 않는다. */
 @Composable
 fun MosimNavHost(
@@ -391,6 +397,9 @@ fun MosimNavHost(
                                 VoiceAnalysisResult.Message(routing.message ?: "요청을 처리했어요")
                         }
                     },
+                    // 실기 마이크 인식이 미검증이라, 인식 결과가 없어도 시연이 F-2에서 멈추지 않게
+                    // 이 시간이 지나면 장소 후보 화면으로 넘긴다. 인식이 검증되면 0으로 되돌린다.
+                    autoAdvanceMillis = VOICE_AUTO_ADVANCE_MILLIS,
                     onAnalysisResult = { result ->
                         when (result) {
                             // 장소 요청이면 후보를 고르는 F-3으로. 되돌아올 단계가 아니라 F-2를 뺀다.

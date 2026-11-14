@@ -213,8 +213,9 @@ private fun CabinTile(label: String, value: String, modifier: Modifier = Modifie
 @Composable
 private fun VoiceStandbyPill(onVoiceRequest: (() -> Unit)?) {
     val base = Modifier.fillMaxWidth()
+    // 문구는 상태와 상관없이 하나로 둔다. 좁은 창에서 긴 문구가 잘려 "눌러…"로 보였다.
     StatusPill(
-        text = if (onVoiceRequest == null) "동승자 음성 요청 대기 중" else "동승자 음성 요청 · 눌러서 말하기",
+        text = "동승자 음성 요청 대기 중",
         modifier = if (onVoiceRequest == null) base else base.clickable(onClick = onVoiceRequest),
     )
 }

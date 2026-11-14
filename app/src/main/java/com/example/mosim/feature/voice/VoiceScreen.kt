@@ -3,6 +3,7 @@
 import android.Manifest
 import android.content.pm.PackageManager
 import androidx.activity.compose.rememberLauncherForActivityResult
+import kotlinx.coroutines.delay
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.content.ContextCompat
 import androidx.compose.foundation.background
@@ -68,6 +69,16 @@ fun VoiceScreen(
     beforeStart: () -> Unit = {},
     analyzeRequest: (suspend (String) -> VoiceAnalysisResult)? = null,
     onAnalysisResult: (VoiceAnalysisResult) -> Unit = {},
+    /**
+     * 이 시간 안에 최종 인식 결과가 오지 않으면 그때까지의 부분 텍스트(없으면 [fallbackQuery])로
+     * 장소 검색 결과를 만들어 다음 화면으로 넘긴다. 0이면 끈다.
+     *
+     * 실기 마이크 인식이 아직 미검증이라 시연이 F-2에서 멈추지 않게 두는 **임시 장치**다.
+     * 인식이 검증되면 0으로 되돌린다. 인식 성공을 꾸며 내는 것이 아니라 화면만 넘긴다.
+     */
+    autoAdvanceMillis: Long = 0L,
+    /** Mock: 자동 진행에서 쓸 기본 검색어. 실제 인식 결과가 아니다. */
+    fallbackQuery: String = "근처 카페",
 ) {
     val context = LocalContext.current.applicationContext
     val model: VoiceViewModel = viewModel(
@@ -138,6 +149,15 @@ fun VoiceScreen(
         }
         beforeStart()
         model.start()
+    }
+    // 권한 대화상자가 떠 있는 동안에는 세지 않는다. 승인 전에 시간이 흐르면 F-2를 보지도 못하고 넘어간다.
+    LaunchedEffect(model, autoAdvanceMillis, micGranted) {
+        if (autoAdvanceMillis <= 0L || !micGranted) return@LaunchedEffect
+        delay(autoAdvanceMillis)
+        if (!advanced.compareAndSet(false, true)) return@LaunchedEffect
+        val query = state.text.trim().ifEmpty { fallbackQuery }
+        model.cancel()
+        latestAnalysisResult(VoiceAnalysisResult.SearchPlaces(query))
     }
     VoiceContent(
         state = state,
