@@ -22,7 +22,7 @@ import androidx.navigation.compose.navigation
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.example.mosim.data.mock.MockPassengerProfiles
-import com.example.mosim.data.mock.MockPlaceSearchSource
+import com.example.mosim.data.mock.MockWaypointSearchSource
 import com.example.mosim.data.mock.MockSpeechSynthesizer
 import com.example.mosim.data.mock.mockPlanSuggestion
 import com.example.mosim.feature.arrival.ArrivalScreen
@@ -86,7 +86,7 @@ fun MosimNavHost(
             navController.navigate(MosimRoute.PLAN_REVISION) { launchSingleTop = true }
         }
     }
-    val mockSearch = remember { MockPlaceSearchSource() }
+    val mockSearch = remember { MockWaypointSearchSource() }
     val searchSource = placeSearch ?: if (demoFlow) mockSearch else remember {
         object : PlaceSearchSource {
             override suspend fun search(query: String) = PlaceSearchResult.Failed("장소 검색 기능 연결 예정")

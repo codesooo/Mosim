@@ -1,6 +1,6 @@
 ﻿package com.example.mosim
 
-import com.example.mosim.data.mock.MockPlaceSearchSource
+import com.example.mosim.data.mock.MockWaypointSearchSource
 import com.example.mosim.data.mock.mockPlaces
 import com.example.mosim.feature.waypoint.PlaceSearchResult
 import com.example.mosim.feature.waypoint.PlaceSearchSource
@@ -106,7 +106,7 @@ class WaypointViewModelTest {
     }
 
     private fun viewModel(result: PlaceSearchResult, scope: CoroutineScope) =
-        WaypointViewModel(MockPlaceSearchSource(result, delayMillis = 1), "커피", scope)
+        WaypointViewModel(MockWaypointSearchSource(result, delayMillis = 1), "커피", scope)
 
     private suspend fun WaypointViewModel.awaitReady(): WaypointUiState.Ready =
         withTimeout(2_000) { state.first { it is WaypointUiState.Ready } } as WaypointUiState.Ready
