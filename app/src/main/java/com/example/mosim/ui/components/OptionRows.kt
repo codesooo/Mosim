@@ -1,8 +1,8 @@
 package com.example.mosim.ui.components
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -43,6 +43,9 @@ import com.example.mosim.ui.theme.strong
 
 /**
  * 번호가 붙은 선택지. 동승자가 "1번으로 가줘"처럼 번호로 말할 수 있게 번호를 크게 보여 준다.
+ *
+ * F-3은 후보 중 하나를 골라 두고 버튼으로 승인하는 흐름이라 [selected]로 골라진 줄을 표시한다.
+ * 피그마 F-3에서 고른 번호만 진한 원이고 나머지는 연한 원이다.
  */
 @Composable
 fun NumberedOptionItem(
@@ -52,11 +55,12 @@ fun NumberedOptionItem(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     tag: String? = null,
+    selected: Boolean = false,
 ) {
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .clickable(role = Role.Button, onClick = onClick)
+            .selectable(selected = selected, role = Role.RadioButton, onClick = onClick)
             .rowDivider()
             .padding(vertical = 24.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -65,7 +69,10 @@ fun NumberedOptionItem(
         Box(
             modifier = Modifier
                 .size(56.dp)
-                .background(PleosColor.ButtonFilledEnabled, MosimShape.Pill),
+                .background(
+                    if (selected) PleosColor.ButtonFilledEnabled else PleosColor.Basic400,
+                    MosimShape.Pill,
+                ),
             contentAlignment = Alignment.Center,
         ) {
             Text(text = number.toString(), style = PleosTypography.BodySmall.strong(), color = PleosColor.TextLightPrimary)
@@ -85,6 +92,9 @@ fun ToggleRow(
     onCheckedChange: (Boolean) -> Unit,
     modifier: Modifier = Modifier,
     tag: String? = null,
+    // G-2는 "반복 · 3회째"(Dark) 옆에 "처음 변경", "일회성 요청"(Neutral) 태그가 있고, 마지막 행에 구분선이 없다.
+    tagTone: ChipTone = ChipTone.Dark,
+    showDivider: Boolean = true,
 ) {
     Row(
         modifier = modifier
@@ -96,12 +106,18 @@ fun ToggleRow(
                 interactionSource = remember { MutableInteractionSource() },
                 indication = null,
             )
-            .rowDivider()
+            .then(if (showDivider) Modifier.rowDivider() else Modifier)
             .padding(vertical = 24.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(24.dp),
     ) {
-        OptionTexts(title = title, tag = tag, subtitle = description, modifier = Modifier.weight(1f))
+        OptionTexts(
+            title = title,
+            tag = tag,
+            subtitle = description,
+            modifier = Modifier.weight(1f),
+            tagTone = tagTone,
+        )
         PleosSwitch(checked = checked, onCheckedChange = null)
     }
 }
@@ -113,6 +129,7 @@ private fun OptionTexts(
     tag: String?,
     subtitle: String,
     modifier: Modifier = Modifier,
+    tagTone: ChipTone = ChipTone.Dark,
 ) {
     Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Row(
@@ -126,7 +143,7 @@ private fun OptionTexts(
                 overflow = TextOverflow.Ellipsis,
             )
             if (tag != null) {
-                StatusChip(text = tag, tone = ChipTone.Dark, size = ChipSize.Small)
+                StatusChip(text = tag, tone = tagTone, size = ChipSize.Small)
             }
         }
         Text(text = subtitle, style = PleosTypography.LabelMedium, color = PleosColor.TextDarkTertiary)

@@ -82,6 +82,13 @@ object MosimTypography {
     // E-1 보조 문구 "서울대병원 본관", "남은 거리 14.6km · 43분"
     val HeroSub = mosimStyle(30, FontWeight.Medium)
 
+    // C-1 픽업지 이동 중: "남은 거리 3.1km" (28 Medium)
+    val HeroSubSmall = mosimStyle(28, FontWeight.Medium)
+
+    // C-2 진한 강조 박스: 라벨 "적용 온도" (26 Medium), 값 "24℃" (64 Bold)
+    val HighlightLabel = mosimStyle(26, FontWeight.Medium)
+    val HighlightValue = mosimStyle(64, FontWeight.Bold)
+
     // A-1 프로필 칩, 신규 등록 설명, A-2 입력 필드 라벨 (22)
     val Caption = mosimStyle(22, FontWeight.Normal)
     val CaptionStrong = mosimStyle(22, FontWeight.Bold)

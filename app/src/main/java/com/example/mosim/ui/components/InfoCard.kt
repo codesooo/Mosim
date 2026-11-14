@@ -19,6 +19,7 @@ import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -64,6 +65,9 @@ fun InfoRow(
     chipText: String? = null,
     chipTone: ChipTone = ChipTone.Neutral,
     showDivider: Boolean = true,
+    // C-2 "준비 항목"은 값이 28 Bold, 칩이 22라서 B-1(36 Bold, 26 칩)과 다르다.
+    valueStyle: TextStyle = PleosTypography.TitleMedium.strong(),
+    chipSize: ChipSize = ChipSize.Medium,
 ) {
     Row(
         modifier = modifier
@@ -98,9 +102,9 @@ fun InfoRow(
             horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             if (chipText != null) {
-                StatusChip(text = chipText, tone = chipTone)
+                StatusChip(text = chipText, tone = chipTone, size = chipSize)
             }
-            Text(text = value, style = PleosTypography.TitleMedium.strong(), maxLines = 1)
+            Text(text = value, style = valueStyle, maxLines = 1)
         }
     }
 }
