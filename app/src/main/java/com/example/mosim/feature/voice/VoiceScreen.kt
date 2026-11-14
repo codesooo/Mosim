@@ -1,5 +1,11 @@
 ﻿package com.example.mosim.feature.voice
 
+import android.Manifest
+import android.content.pm.PackageManager
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.core.content.ContextCompat
+import kotlinx.coroutines.delay
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -63,6 +69,15 @@ fun VoiceScreen(
     beforeStart: () -> Unit = {},
     analyzeRequest: (suspend (String) -> VoiceAnalysisResult)? = null,
     onAnalysisResult: (VoiceAnalysisResult) -> Unit = {},
+    /**
+     * 이 시간 안에 최종 인식 결과가 오지 않으면 그때까지의 부분 텍스트(없으면 [fallbackQuery])로
+     * SearchPlaces 결과를 만들어 다음 화면으로 넘긴다. 0이면 끈다.
+     * 실기 마이크 인식이 아직 미검증이라 시연이 F-2에서 멈추지 않게 두는 임시 장치다.
+     * 실제 인식이 검증되면 이 값을 0으로 두고 제거한다.
+     */
+    autoAdvanceMillis: Long = 0L,
+    /** Mock: 자동 진행에서 쓸 기본 검색어. 실제 인식 결과가 아니다. */
+    fallbackQuery: String = "근처 카페",
 ) {
     val context = LocalContext.current.applicationContext
     val model: VoiceViewModel = viewModel(
@@ -76,10 +91,13 @@ fun VoiceScreen(
     val latestAnalyzer by rememberUpdatedState(analyzeRequest)
     val latestAnalysisResult by rememberUpdatedState(onAnalysisResult)
     var analysisMessage by remember { mutableStateOf<String?>(null) }
+    // 최종 결과 처리와 자동 진행이 같은 화면에서 두 번 이동하지 않게 한 번만 쓴다.
+    val advanced = remember(model) { java.util.concurrent.atomic.AtomicBoolean(false) }
     val lifecycleOwner = LocalLifecycleOwner.current
     LaunchedEffect(model, lifecycleOwner) {
         lifecycleOwner.lifecycle.repeatOnLifecycle(Lifecycle.State.STARTED) {
             model.finalResults.collect { text ->
+                if (!advanced.compareAndSet(false, true)) return@collect
                 if (awaitsAnalysis) model.markAnalyzing()
                 latestResult(text)
                 if (awaitsAnalysis) {
@@ -111,7 +129,35 @@ fun VoiceScreen(
             model.cancel()
         }
     }
-    LaunchedEffect(model) { beforeStart(); model.start() }
+    // 실제 모드는 마이크 권한이 승인된 뒤에 시작한다. 승인 전에 request()를 부르면 무음만 들어온다.
+    var micGranted by remember(mode) {
+        mutableStateOf(
+            mode != SpeechMode.Pleos || ContextCompat.checkSelfPermission(
+                context, Manifest.permission.RECORD_AUDIO,
+            ) == PackageManager.PERMISSION_GRANTED,
+        )
+    }
+    val micRequest = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+        micGranted = granted
+        if (!granted) analysisMessage = "마이크 권한이 없어 음성을 들을 수 없어요"
+    }
+    LaunchedEffect(model, micGranted) {
+        if (!micGranted) {
+            micRequest.launch(Manifest.permission.RECORD_AUDIO)
+            return@LaunchedEffect
+        }
+        beforeStart()
+        model.start()
+    }
+    // 권한 대화상자가 떠 있는 동안에는 세지 않는다. 승인 전에 시간이 흐르면 F-2를 보지도 못하고 넘어간다.
+    LaunchedEffect(model, autoAdvanceMillis, micGranted) {
+        if (autoAdvanceMillis <= 0L || !micGranted) return@LaunchedEffect
+        delay(autoAdvanceMillis)
+        if (!advanced.compareAndSet(false, true)) return@LaunchedEffect
+        val query = state.text.trim().ifEmpty { fallbackQuery }
+        model.cancel()
+        latestAnalysisResult(VoiceAnalysisResult.SearchPlaces(query))
+    }
     VoiceContent(
         state = state,
         onBack = { model.cancel(); onBack() },
