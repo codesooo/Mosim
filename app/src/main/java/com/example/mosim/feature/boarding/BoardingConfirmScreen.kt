@@ -14,6 +14,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.intl.LocaleList
+import androidx.compose.ui.text.style.LineBreak
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.example.mosim.platform.pleos.BoardingSignals
@@ -117,7 +119,12 @@ fun BoardingConfirmContent(
                 Spacer(modifier = Modifier.weight(1f))
                 Text(
                     text = "차량 신호만으로는 누가 탔는지 확정할 수 없어 운전자 확인 후 전환합니다",
-                    style = MosimTypography.Caption,
+                    // 기본값은 한국어를 글자 단위로 끊어 "전 / 환합니다"처럼 나뉜다(Pleos 에뮬레이터 확인, 2026-11-14).
+                    // [확인 필요] 다른 화면에서도 같은 문제가 보이면 ui/theme 글자 토큰에 기본으로 넣을지 팀과 정한다.
+                    style = MosimTypography.Caption.copy(
+                        lineBreak = LineBreak.Paragraph.copy(wordBreak = LineBreak.WordBreak.Phrase),
+                        localeList = LocaleList("ko-KR"),
+                    ),
                     color = MosimColor.TextHint,
                 )
             }

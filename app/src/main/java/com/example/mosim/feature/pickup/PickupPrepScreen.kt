@@ -4,11 +4,13 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Text
@@ -21,6 +23,9 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.intl.LocaleList
+import androidx.compose.ui.text.style.LineBreak
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -132,6 +137,9 @@ private val StatusCardItemGap = 12.dp
 private val WaitingDotSize = 20.dp
 private val WaitingDotTextGap = 16.dp
 
+// 줄바꿈하지 않는 공백. 라벨과 값("설정 24℃")을 한 줄에 묶을 때 쓴다.
+private const val NBSP = ' '
+
 @Composable
 fun PickupPrepScreen(
     onBack: () -> Unit,
@@ -188,16 +196,26 @@ fun PickupPrepContent(
                     verticalArrangement = Arrangement.spacedBy(TempCardItemGap),
                 ) {
                     val recommendation = state.recommendation
-                    Row(horizontalArrangement = Arrangement.spacedBy(CompareBoxGap)) {
+                    // 값이 두 줄로 넘어가는 박스가 있어도 두 박스 높이를 같게 맞춘다(Pleos 에뮬레이터 확인, 2026-11-14).
+                    Row(
+                        modifier = Modifier.height(IntrinsicSize.Max),
+                        horizontalArrangement = Arrangement.spacedBy(CompareBoxGap),
+                    ) {
                         TempCompareBox(
                             label = "저장 당시",
-                            value = "외부 ${formatTemp(state.savedOutsideTemp)} · 설정 ${formatTemp(state.savedSetTemp)}",
-                            modifier = Modifier.weight(1f),
+                            // 라벨과 값 사이는 줄바꿈 없는 공백(NBSP)이라 "설정 / 24℃"처럼 떨어지지 않는다.
+                            value = "외부$NBSP${formatTemp(state.savedOutsideTemp)} · " +
+                                "설정$NBSP${formatTemp(state.savedSetTemp)}",
+                            modifier = Modifier
+                                .weight(1f)
+                                .fillMaxHeight(),
                         )
                         TempCompareBox(
                             label = "현재",
-                            value = "외부 ${formatTemp(state.currentOutsideTemp)} · ${state.currentWeather}",
-                            modifier = Modifier.weight(1f),
+                            value = "외부$NBSP${formatTemp(state.currentOutsideTemp)} · ${state.currentWeather}",
+                            modifier = Modifier
+                                .weight(1f)
+                                .fillMaxHeight(),
                         )
                     }
                     AppliedTempBox(temp = formatTemp(recommendation.temp))
@@ -280,9 +298,18 @@ private fun TempCompareBox(
         verticalArrangement = Arrangement.spacedBy(CompareBoxItemGap),
     ) {
         Text(text = label, style = MosimTypography.Caption, color = PleosColor.TextDarkTertiary)
-        Text(text = value, style = PleosTypography.LabelMedium.strong())
+        Text(text = value, style = PleosTypography.LabelMedium.strong().koreanWordBreak())
     }
 }
+
+/**
+ * 한국어를 글자 단위가 아니라 어절(띄어쓰기) 단위로 줄바꿈한다. 기본값은 "24℃"가 "2 / 4℃"처럼 끊길 수 있다.
+ * [확인 필요] 다른 화면에서도 같은 문제가 보이면 ui/theme 글자 토큰에 기본으로 넣을지 팀과 정한다.
+ */
+private fun TextStyle.koreanWordBreak(): TextStyle = copy(
+    lineBreak = LineBreak.Paragraph.copy(wordBreak = LineBreak.WordBreak.Phrase),
+    localeList = LocaleList("ko-KR"),
+)
 
 /** 진한 "적용 온도 24℃" 박스 */
 @Composable

@@ -20,8 +20,9 @@ import kotlinx.coroutines.flow.flow
 class MockBoardingSignalSource(
     private val scenario: Scenario = Scenario.Normal,
     private val stepDelayMs: Long = 1_200L, // 시연 영상에서 하나씩 바뀌는 게 보이도록 잡은 값
-    // C-2 준비 항목 적용(약 5.6초) 뒤 "탑승 대기 중"이 보이도록 잡은 시간. 실제로는 동승자가 언제 올지 모른다.
-    private val waitForPassengerMs: Long = 8_000L,
+    // C-2 준비 항목 적용(약 5.6초) 뒤 "탑승 대기 중"이 3~4초 보이도록 잡은 시간.
+    // 8초일 때 Pleos 에뮬레이터에서 거의 안 보였다(2026-11-14). 실제로는 동승자가 언제 올지 모른다.
+    private val waitForPassengerMs: Long = 10_000L,
 ) : BoardingSignalSource {
 
     enum class Scenario {
