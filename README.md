@@ -411,14 +411,22 @@ Pleos Connect v2.1.0 **x86_64** 에뮬레이터(API 34, 2560×1440)에서 확인
 
 ## 9. APK 다운로드
 
-| 경로 | 링크 |
-|---|---|
-| GitHub Release | [v1.0.0](https://github.com/codesooo/Mosim/releases/tag/v1.0.0) |
-| 저장소 내 경로 | [`apk/모심_모심_release.apk`](apk/모심_모심_release.apk) |
+| 경로 | 링크 | 파일명 |
+|---|---|---|
+| **저장소 내 경로** (제출 기준) | [`apk/모심_모심_release.apk`](apk/모심_모심_release.apk) | `모심_모심_release.apk` |
+| GitHub Release | [v1.0.0 · 바로 받기](https://github.com/codesooo/Mosim/releases/download/v1.0.0/Mosim_Mosim_release.apk) | `Mosim_Mosim_release.apk` |
 
-- 파일명: `모심_모심_release.apk`
-- 빌드: release, 서명됨(APK Signature Scheme v2)
-- 설치 방법은 [6. 실행 방법](#6-실행-방법) 참고
+두 파일은 **같은 빌드 산출물**이다(SHA-256 일치).
+GitHub Release는 첨부파일 이름에 한글을 허용하지 않아 ASCII 이름으로 올렸다.
+제출 규정의 `팀명_앱이름_release.apk` 형식은 저장소 `apk/` 경로가 그대로 따른다.
+
+| 항목 | 값 |
+|---|---|
+| 빌드 | release, 서명됨(APK Signature Scheme v2) |
+| 크기 | 85,844,099 bytes (81.9 MB) |
+| SHA-256 | `65fe131d51beff2178c5fa9ea4f8910b4a205dff26774b08d260e56b8733ffc9` |
+
+설치 방법은 [6. 실행 방법](#6-실행-방법) 참고.
 
 ---
 
