@@ -43,8 +43,8 @@ import com.example.mosim.ui.theme.strong
  * 레이아웃 원칙
  *  - 가운데 한 덩어리로 모은다. 운전 중에 훑어야 하므로 볼 것을 하나로 둔다.
  *  - 인식 문장이 들어갈 자리를 미리 비워 둔다. 글자가 생길 때 파형이 위로 튀지 않는다.
- *  - 파형은 **상태** 표시다. 음량 데이터가 없으므로 음량에 반응하는 척하지 않는다.
- *    듣는 중일 때만 정해진 주기로 움직이고, 나머지 상태에서는 멈춘다.
+ *  - 파형은 실제 마이크 음량(SpeechToText onUpdatedRms)에 반응한다. 값이 없으면 움직이지 않는다.
+ *    소리가 들어오지 않으면 막대가 낮게 깔린 채로 있어서 "마이크가 조용하다"가 바로 보인다.
  */
 
 /** 막대 기본 높이 비율. 가운데가 높은 대칭형으로 피그마 F-2 파형을 따랐다. */
@@ -100,7 +100,7 @@ internal fun VoiceLayout(
                     verticalArrangement = Arrangement.Center,
                     horizontalAlignment = Alignment.CenterHorizontally,
                 ) {
-                    VoiceIndicator(state.phase)
+                    VoiceIndicator(state.phase, state.level)
                     Spacer(Modifier.height(MosimDimens.SectionGap))
                     Text(
                         // 인식 문장이 없는 동안에는 이 줄이 화면의 주인공이라 작게 쓰지 않는다.
@@ -167,27 +167,28 @@ private fun Transcript(state: VoiceUiState, modifier: Modifier = Modifier) {
 
 /** 상태에 따라 파형(듣는 중)과 점 세 개(분석 중)를 바꿔 보여 준다. */
 @Composable
-private fun VoiceIndicator(phase: VoicePhase, modifier: Modifier = Modifier) {
+private fun VoiceIndicator(phase: VoicePhase, level: Float, modifier: Modifier = Modifier) {
     when (phase) {
         // 분석은 STT가 아니라 그다음 단계다. 모양을 달리해 구분한다.
         VoicePhase.Analyzing -> AnalyzingDots(modifier)
-        else -> VoiceWaveform(phase, modifier)
+        else -> VoiceWaveform(phase, level, modifier)
     }
 }
 
 /**
- * 상태가 바뀔 때만 막대가 자라고 줄어든다.
+ * 막대 높이는 **실제 들어오는 소리 크기**를 따른다([level], 0~1).
  *
- * 계속 도는 애니메이션을 쓰지 않는 이유는 두 가지다.
- *  - 음량 데이터가 없는데 움직이면 음량에 반응하는 것처럼 보여 거짓말이 된다.
- *  - 끝나지 않는 애니메이션은 Compose가 영원히 idle이 아니게 만들어 기기 테스트가 멈춘다.
+ * 계속 도는 애니메이션은 쓰지 않는다. 소리가 없는데 움직이면 마이크가 동작하는 것처럼 보여
+ * 거짓말이 되고, 끝나지 않는 애니메이션은 Compose가 idle이 되지 않아 기기 테스트가 멈춘다.
  *
- * 듣기 시작·종료 순간에 막대가 잔물결처럼 번져 상태가 바뀜 걸 알리고, 그 뒤엔 가만히 멈춘다.
+ * 듣는 중인데 막대가 바닥에 깔려 있으면 마이크로 소리가 들어오지 않는다는 뜻이다.
  */
 @Composable
-private fun VoiceWaveform(phase: VoicePhase, modifier: Modifier = Modifier) {
+private fun VoiceWaveform(phase: VoicePhase, level: Float, modifier: Modifier = Modifier) {
     val listening = phase == VoicePhase.Listening || phase == VoicePhase.Stopping
     val tone = if (listening) PleosColor.TextDarkPrimary else PleosColor.TextDarkQuaternary
+    // 소리가 아주 작아도 막대가 사라지지 않게 바닥을 둔다.
+    val loudness = if (listening) IdleBarScale + level.coerceIn(0f, 1f) * (1f - IdleBarScale) else IdleBarScale
 
     Row(
         modifier = modifier.semantics { contentDescription = "음성 요청" },
@@ -196,7 +197,7 @@ private fun VoiceWaveform(phase: VoicePhase, modifier: Modifier = Modifier) {
     ) {
         BarFractions.forEachIndexed { index, base ->
             val fraction by animateFloatAsState(
-                targetValue = if (listening) base else base * IdleBarScale,
+                targetValue = base * loudness,
                 animationSpec = tween(
                     durationMillis = BarTweenMillis,
                     delayMillis = index * BarStaggerMillis,
@@ -251,7 +252,8 @@ private fun Dot() {
 internal fun VoiceUiState.statusLabel(analysisMessage: String?): String = when (phase) {
     VoicePhase.Idle -> "음성 요청 대기 중"
     VoicePhase.Preparing -> "음성 인식 준비 중"
-    VoicePhase.Listening -> "듣고 있어요"
+    // 듣는 중인데 소리가 한 번도 안 들어오면 마이크 쪽 문제다. 말해도 반응이 없는 이유를 알려 준다.
+    VoicePhase.Listening -> if (inputHeard) "듣고 있어요" else "듣고 있어요 · 마이크에서 소리가 들어오지 않아요"
     VoicePhase.Stopping -> "인식을 마무리하고 있어요"
     VoicePhase.Analyzing -> analysisMessage ?: "요청을 확인하고 있어요"
     VoicePhase.Completed -> "음성 인식 완료"

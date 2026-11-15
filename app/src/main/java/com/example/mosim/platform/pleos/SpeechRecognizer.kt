@@ -14,6 +14,12 @@ sealed interface SpeechEvent {
     data object Ready : SpeechEvent
     data object Listening : SpeechEvent
     data class Text(val text: String?, val isFinal: Boolean) : SpeechEvent
+
+    /**
+     * 마이크로 들어오는 소리 크기(SpeechToText onUpdatedRms).
+     * [확인 필요] SDK가 주는 값의 단위와 범위를 문서에서 찾지 못했다. 화면은 상대 크기로만 쓴다.
+     */
+    data class Level(val rms: Double) : SpeechEvent
     data object Ended : SpeechEvent
     data class Failed(val error: SpeechError) : SpeechEvent
 }
