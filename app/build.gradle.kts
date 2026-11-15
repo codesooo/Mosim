@@ -27,8 +27,29 @@ android {
         buildConfigField("String", "KAKAO_NATIVE_APP_KEY", "\"${localProperty("KAKAO_NATIVE_APP_KEY")}\"")
     }
 
+    // 제출용 release 서명. 비밀값은 Git에 올라가지 않는 keystore.properties에서만 읽는다.
+    // 파일이 없으면 signingConfigs를 비워 두고 release는 서명 없이 빌드된다(CI·팀원 로컬에서 빌드가 깨지지 않게).
+    val keystoreProperties = Properties().apply {
+        val file = rootProject.file("keystore.properties")
+        if (file.exists()) file.inputStream().use { load(it) }
+    }
+
+    signingConfigs {
+        if (keystoreProperties.getProperty("storeFile").isNullOrBlank().not()) {
+            create("release") {
+                storeFile = file(keystoreProperties.getProperty("storeFile"))
+                storePassword = keystoreProperties.getProperty("storePassword")
+                keyAlias = keystoreProperties.getProperty("keyAlias")
+                keyPassword = keystoreProperties.getProperty("keyPassword")
+                // 서명 스킴은 AGP 기본값을 따른다. minSdk 28이라 v1(JAR)·v2 없이 v3만 붙고,
+                // Android 9 이상은 v3를 지원하므로 설치에 문제가 없다(apksigner verify 통과).
+            }
+        }
+    }
+
     buildTypes {
         release {
+            signingConfig = signingConfigs.findByName("release")
             isMinifyEnabled = false
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
